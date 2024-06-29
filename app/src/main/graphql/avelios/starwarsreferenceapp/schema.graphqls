@@ -1,0 +1,39 @@
+type Query {
+    allPeople: PeopleConnection
+    allPlanets: PlanetsConnection
+    allStarships: StarshipsConnection
+}
+
+type PeopleConnection {
+    people: [Person]
+}
+
+type Person {
+    id: ID!
+    name: String!
+    filmConnection: FilmConnection
+}
+
+type FilmConnection {
+    totalCount: Int!
+}
+
+type PlanetsConnection {
+    planets: [Planet]
+}
+
+type Planet {
+    id: ID!
+    name: String!
+    climate: String
+}
+
+type StarshipsConnection {
+    starships: [Starship]
+}
+
+type Starship {
+    id: ID!
+    name: String!
+    model: String
+}

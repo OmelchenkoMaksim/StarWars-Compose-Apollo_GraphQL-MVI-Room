@@ -1,0 +1,9 @@
+query GetStarships {
+    allStarships {
+        starships {
+            id
+            name
+            model
+        }
+    }
+}

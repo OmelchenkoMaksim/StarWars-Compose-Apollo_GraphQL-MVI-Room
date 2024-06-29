@@ -1,0 +1,11 @@
+query GetCharacters {
+    allPeople {
+        people {
+            id
+            name
+            filmConnection {
+                totalCount
+            }
+        }
+    }
+}

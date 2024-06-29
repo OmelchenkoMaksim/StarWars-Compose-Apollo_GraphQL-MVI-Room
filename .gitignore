@@ -1,0 +1,26 @@
+# IDE specific files
+*.iml
+.idea
+.idea/caches
+.idea/libraries
+.idea/modules.xml
+.idea/workspace.xml
+.idea/navEditor.xml
+.idea/assetWizardSettings.xml
+
+# macOS specific files
+.DS_Store
+
+# Gradle files
+.gradle
+/local.properties
+.externalNativeBuild
+.cxx
+build
+captures
+
+# Kotlin specific files
+.kotlinc
+
+# Additional paths (relative to project root)
+.kotlin

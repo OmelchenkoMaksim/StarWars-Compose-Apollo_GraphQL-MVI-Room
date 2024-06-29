@@ -1,0 +1,9 @@
+query GetPlanets {
+    allPlanets {
+        planets {
+            id
+            name
+            climate
+        }
+    }
+}
