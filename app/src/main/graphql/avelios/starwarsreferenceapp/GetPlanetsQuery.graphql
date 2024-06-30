@@ -6,6 +6,13 @@ query GetPlanets($after: String, $first: Int) {
                 id
                 name
                 climates
+                diameter
+                rotationPeriod
+                orbitalPeriod
+                gravity
+                population
+                terrains
+                surfaceWater
             }
         }
         pageInfo {

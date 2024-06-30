@@ -6,6 +6,13 @@ query GetStarships($after: String, $first: Int) {
                 id
                 name
                 model
+                starshipClass
+                manufacturers
+                length
+                crew
+                passengers
+                maxAtmospheringSpeed
+                hyperdriveRating
             }
         }
         pageInfo {

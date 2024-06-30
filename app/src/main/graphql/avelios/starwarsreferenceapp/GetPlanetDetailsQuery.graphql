@@ -1,0 +1,14 @@
+query GetPlanetDetails($id: ID!) {
+    planet(id: $id) {
+        id
+        name
+        diameter
+        orbitalPeriod
+        rotationPeriod
+        population
+        climates
+        terrains
+        gravity
+        surfaceWater
+    }
+}

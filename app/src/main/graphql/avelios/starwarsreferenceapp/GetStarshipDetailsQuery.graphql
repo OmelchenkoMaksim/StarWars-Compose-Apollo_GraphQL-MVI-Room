@@ -1,0 +1,14 @@
+query GetStarshipDetails($id: ID!) {
+    starship(id: $id) {
+        id
+        name
+        model
+        starshipClass
+        manufacturers
+        length
+        crew
+        passengers
+        maxAtmospheringSpeed
+        hyperdriveRating
+    }
+}

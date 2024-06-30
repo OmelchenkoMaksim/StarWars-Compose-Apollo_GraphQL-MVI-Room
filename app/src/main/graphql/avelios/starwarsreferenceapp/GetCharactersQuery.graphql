@@ -5,6 +5,16 @@ query GetCharacters($after: String, $first: Int) {
             node {
                 id
                 name
+                birthYear
+                eyeColor
+                gender
+                hairColor
+                height
+                mass
+                skinColor
+                homeworld {
+                    name
+                }
                 filmConnection {
                     totalCount
                 }

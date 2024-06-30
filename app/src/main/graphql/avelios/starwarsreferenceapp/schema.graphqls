@@ -2,35 +2,65 @@ type Query {
     allPeople(after: String, first: Int): PeopleConnection
     allPlanets(after: String, first: Int): PlanetsConnection
     allStarships(after: String, first: Int): StarshipsConnection
+    person(id: ID!): Person
+    planet(id: ID!): Planet
+    starship(id: ID!): Starship
 }
 
 type PeopleConnection {
+    people: [Person]
     edges: [PeopleEdge]
     pageInfo: PageInfo
+    totalCount: Int
 }
 
 type PeopleEdge {
-    cursor: String
+    cursor: String!
     node: Person
 }
 
 type Person {
     id: ID!
     name: String!
-    filmConnection: FilmConnection
+    birthYear: String
+    eyeColor: String
+    gender: String
+    hairColor: String
+    height: Int
+    mass: Float
+    skinColor: String
+    homeworld: Planet
+    filmConnection: StarshipFilmsConnection
 }
 
-type FilmConnection {
-    totalCount: Int!
+type StarshipFilmsConnection {
+    films: [Film]
+    edges: [StarshipFilmsEdge]
+    pageInfo: PageInfo
+    totalCount: Int
 }
 
+type StarshipFilmsEdge {
+    cursor: String!
+    node: Film
+}
+
+type Film {
+    id: ID!
+    title: String
+    director: String
+    releaseDate: String
+    openingCrawl: String
+}
 type PlanetsConnection {
+    planets: [Planet]
     edges: [PlanetsEdge]
     pageInfo: PageInfo
+    totalCount: Int
 }
 
 type PlanetsEdge {
-    cursor: String
+    cursor: String!
     node: Planet
 }
 
@@ -38,15 +68,24 @@ type Planet {
     id: ID!
     name: String!
     climates: [String]
+    diameter: Int
+    gravity: String
+    orbitalPeriod: Int
+    population: Float
+    rotationPeriod: Int
+    surfaceWater: Float
+    terrains: [String]
 }
 
 type StarshipsConnection {
+    starships: [Starship]
     edges: [StarshipsEdge]
     pageInfo: PageInfo
+    totalCount: Int
 }
 
 type StarshipsEdge {
-    cursor: String
+    cursor: String!
     node: Starship
 }
 
@@ -54,9 +93,18 @@ type Starship {
     id: ID!
     name: String!
     model: String
+    starshipClass: String
+    manufacturers: [String]
+    length: Float
+    crew: String
+    passengers: String
+    maxAtmospheringSpeed: Int
+    hyperdriveRating: Float
 }
 
 type PageInfo {
     endCursor: String
-    hasNextPage: Boolean
+    hasNextPage: Boolean!
+    hasPreviousPage: Boolean!
+    startCursor: String
 }
