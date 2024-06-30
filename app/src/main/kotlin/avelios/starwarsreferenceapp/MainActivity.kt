@@ -2,6 +2,7 @@ package avelios.starwarsreferenceapp
 
 import android.app.Application
 import android.content.Context
+import android.content.SharedPreferences
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
@@ -10,28 +11,50 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavHostController
@@ -49,6 +72,8 @@ import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import avelios.starwarsreferenceapp.ui.theme.StarWarsReferenceAppTheme
+import avelios.starwarsreferenceapp.ui.theme.ThemeVariant
+import avelios.starwarsreferenceapp.ui.theme.TypographyVariant
 import coil.compose.rememberAsyncImagePainter
 import com.apollographql.apollo3.ApolloClient
 import com.apollographql.apollo3.exception.ApolloException
@@ -68,29 +93,191 @@ import org.koin.dsl.module
 
 class MainActivity : ComponentActivity() {
     private val charactersViewModel: CharactersViewModel by viewModel()
+    private val settingsManager: SettingsManager by inject()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val isDarkMode = settingsManager.isDarkMode()
+        AppCompatDelegate.setDefaultNightMode(
+            if (isDarkMode) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO
+        )
+
         setContent {
-            StarWarsReferenceAppTheme {
+            val savedThemeVariant = settingsManager.loadThemeVariant()
+            val savedTypographyVariant = settingsManager.loadTypographyVariant()
+
+            val themeVariant = remember { mutableStateOf(savedThemeVariant) }
+            val typographyVariant = remember { mutableStateOf(savedTypographyVariant) }
+            val isDarkTheme = remember { mutableStateOf(isDarkMode) }
+
+            StarWarsReferenceAppTheme(
+                themeVariant = themeVariant.value,
+                typographyVariant = typographyVariant.value,
+                darkTheme = isDarkTheme.value
+            ) {
                 val characters by charactersViewModel.characters.collectAsState()
                 val starships by charactersViewModel.starships.collectAsState()
                 val planets by charactersViewModel.planets.collectAsState()
 
-                MainScreen(characters, starships, planets)
+                MainScreen(
+                    characters = characters,
+                    starships = starships,
+                    planets = planets,
+                    themeVariant = themeVariant,
+                    typographyVariant = typographyVariant,
+                    isDarkTheme = isDarkTheme,
+                    onSaveSettings = { theme, typography ->
+                        settingsManager.saveThemeVariant(theme)
+                        settingsManager.saveTypographyVariant(typography)
+                        settingsManager.setDarkMode(isDarkTheme.value)
+                    }
+                )
             }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen(characters: List<StarWarsCharacter>, starships: List<Starship>, planets: List<Planet>) {
+fun MainScreen(
+    characters: List<StarWarsCharacter>,
+    starships: List<Starship>,
+    planets: List<Planet>,
+    themeVariant: MutableState<ThemeVariant>,
+    typographyVariant: MutableState<TypographyVariant>,
+    isDarkTheme: MutableState<Boolean>,
+    onSaveSettings: (ThemeVariant, TypographyVariant) -> Unit
+) {
     val navController = rememberNavController()
+    var showSettingsDialog by remember { mutableStateOf(false) }
+
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Star Wars") },
+                actions = {
+                    IconButton(onClick = {
+                        isDarkTheme.value = !isDarkTheme.value
+                        onSaveSettings(themeVariant.value, typographyVariant.value)
+                    }) {
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_day_night),
+                            contentDescription = "Toggle Theme"
+                        )
+                    }
+                    IconButton(onClick = { showSettingsDialog = true }) {
+                        Icon(Icons.Default.Settings, contentDescription = "Settings")
+                    }
+                }
+            )
+        },
         bottomBar = { BottomNavigationBar(navController) }
     ) { paddingValues: PaddingValues ->
         NavigationGraph(navController, characters, starships, planets, modifier = Modifier.padding(paddingValues))
+
+        if (showSettingsDialog) {
+            SettingsDialog(
+                onDismiss = { showSettingsDialog = false },
+                themeVariant = themeVariant,
+                typographyVariant = typographyVariant,
+                onSaveSettings = onSaveSettings
+            )
+        }
     }
+}
+
+@Composable
+fun SettingsDialog(
+    onDismiss: () -> Unit,
+    themeVariant: MutableState<ThemeVariant>,
+    typographyVariant: MutableState<TypographyVariant>,
+    onSaveSettings: (ThemeVariant, TypographyVariant) -> Unit
+) {
+    val themeExpanded = remember { mutableStateOf(false) }
+    val typographyExpanded = remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Settings") },
+        text = {
+            Column {
+                Button(onClick = { themeExpanded.value = true }) {
+                    OutlinedText("Select Theme (${themeVariant.value.name})")
+                }
+                DropdownMenu(
+                    expanded = themeExpanded.value,
+                    onDismissRequest = { themeExpanded.value = false }
+                ) {
+                    ThemeVariant.entries.forEach { variant ->
+                        DropdownMenuItem(onClick = {
+                            themeVariant.value = variant
+                            themeExpanded.value = false
+                            onSaveSettings(themeVariant.value, typographyVariant.value)
+                        }, text = {
+                            Text(variant.name)
+                        })
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(onClick = { typographyExpanded.value = true }) {
+                    OutlinedText("Select Typography (${typographyVariant.value.name})")
+                }
+                DropdownMenu(
+                    expanded = typographyExpanded.value,
+                    onDismissRequest = { typographyExpanded.value = false }
+                ) {
+                    TypographyVariant.entries.forEach { variant ->
+                        DropdownMenuItem(onClick = {
+                            typographyVariant.value = variant
+                            typographyExpanded.value = false
+                            onSaveSettings(themeVariant.value, typographyVariant.value)
+                        }, text = {
+                            Text(variant.name)
+                        })
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(
+                    text = "OK",
+                    style = typography.bodyMedium.copy(
+                        color = MaterialTheme.colorScheme.onBackground,
+                        fontSize = 20.sp,
+                        shadow = Shadow(
+                            color = MaterialTheme.colorScheme.inverseSurface,
+                            offset = Offset(2f, 2f),
+                            blurRadius = 2f
+                        )
+                    )
+                )
+            }
+        }
+    )
+}
+
+@Composable
+fun OutlinedText(text: String) {
+    val typography = MaterialTheme.typography
+    val colors = MaterialTheme.colorScheme
+
+    Text(
+        text = text,
+        style = typography.bodyMedium.copy(
+            color = colors.onBackground,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            shadow = Shadow(
+                color = colors.background,
+                offset = Offset(2f, 2f),
+                blurRadius = 2f
+            )
+        ),
+        modifier = Modifier
+            .padding(8.dp)
+    )
 }
 
 @Composable
@@ -148,11 +335,11 @@ fun currentRoute(navController: NavHostController): String? {
 }
 
 @Composable
-fun CharactersScreen(characters: List<StarWarsCharacter>) {
-    Column {
-        Text(text = "Characters", style = MaterialTheme.typography.bodyLarge)
+fun CharactersScreen(characters: List<StarWarsCharacter>, modifier: Modifier = Modifier) {
+    Column(modifier = modifier.padding(16.dp)) {
+        Text(text = "Characters", style = typography.bodyLarge)
         LazyColumn {
-            items(characters) { character ->
+            items(characters) { character: StarWarsCharacter ->
                 CharacterItem(character = character)
             }
         }
@@ -160,23 +347,11 @@ fun CharactersScreen(characters: List<StarWarsCharacter>) {
 }
 
 @Composable
-fun CharacterItem(character: StarWarsCharacter) {
-    Column(modifier = Modifier.padding(8.dp)) {
-        val painter = rememberAsyncImagePainter(
-            model = "https://starwars-visualguide.com/assets/img/characters/${character.id}.jpg"
-        )
-        Image(painter = painter, contentDescription = null)
-        Text(text = "Name: ${character.name}", style = MaterialTheme.typography.bodyMedium)
-        Text(text = "Films Count: ${character.filmsCount}", style = MaterialTheme.typography.bodyLarge)
-    }
-}
-
-@Composable
-fun StarshipsScreen(starships: List<Starship>) {
-    Column {
-        Text(text = "Starships", style = MaterialTheme.typography.bodyLarge)
+fun StarshipsScreen(starships: List<Starship>, modifier: Modifier = Modifier) {
+    Column(modifier = modifier.padding(16.dp)) {
+        Text(text = "Starships", style = typography.bodyLarge)
         LazyColumn {
-            items(starships) { starship ->
+            items(starships) { starship: Starship ->
                 StarshipItem(starship = starship)
             }
         }
@@ -184,14 +359,26 @@ fun StarshipsScreen(starships: List<Starship>) {
 }
 
 @Composable
-fun PlanetsScreen(planets: List<Planet>) {
-    Column {
-        Text(text = "Planets", style = MaterialTheme.typography.bodyLarge)
+fun PlanetsScreen(planets: List<Planet>, modifier: Modifier = Modifier) {
+    Column(modifier = modifier.padding(16.dp)) {
+        Text(text = "Planets", style = typography.bodyLarge)
         LazyColumn {
-            items(planets) { planet ->
+            items(planets) { planet: Planet ->
                 PlanetItem(planet = planet)
             }
         }
+    }
+}
+
+@Composable
+fun CharacterItem(character: StarWarsCharacter) {
+    Column(modifier = Modifier.padding(vertical = 8.dp)) {
+        val painter = rememberAsyncImagePainter(
+            model = "https://starwars-visualguide.com/assets/img/characters/${character.id}.jpg"
+        )
+        Image(painter = painter, contentDescription = null)
+        Text(text = "Name: ${character.name}", style = MaterialTheme.typography.bodyMedium)
+        Text(text = "Films Count: ${character.filmsCount}", style = typography.bodyLarge)
     }
 }
 
@@ -306,6 +493,8 @@ class App : Application() {
         single {
             getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         }
+        single { provideSharedPreferences(androidContext()) }
+        single { SettingsManager(get()) }
     }
 
     override fun onCreate() {
@@ -316,6 +505,10 @@ class App : Application() {
             modules(appModule)
         }
         setupNetworkListener()
+    }
+
+    private fun provideSharedPreferences(context: Context): SharedPreferences {
+        return context.getSharedPreferences("settings", Context.MODE_PRIVATE)
     }
 
     private fun setupNetworkListener() {
@@ -353,6 +546,35 @@ class App : Application() {
         const val HOST_GRAPHQL = "https://swapi-graphql.netlify.app/.netlify/functions/index"
         const val TOAST_INTERNET_AVAILABLE = "Internet connection established"
         const val TOAST_INTERNET_LOST = "Lost internet connection"
+    }
+}
+
+class SettingsManager(private val sharedPreferences: SharedPreferences) {
+
+    fun saveThemeVariant(themeVariant: ThemeVariant) {
+        sharedPreferences.edit().putString("theme_variant", themeVariant.name).apply()
+    }
+
+    fun loadThemeVariant(): ThemeVariant {
+        val themeVariantName = sharedPreferences.getString("theme_variant", ThemeVariant.MorningMystic.name)
+        return ThemeVariant.valueOf(themeVariantName ?: ThemeVariant.MorningMystic.name)
+    }
+
+    fun saveTypographyVariant(typographyVariant: TypographyVariant) {
+        sharedPreferences.edit().putString("typography_variant", typographyVariant.name).apply()
+    }
+
+    fun loadTypographyVariant(): TypographyVariant {
+        val typographyVariantName = sharedPreferences.getString("typography_variant", TypographyVariant.Classic.name)
+        return TypographyVariant.valueOf(typographyVariantName ?: TypographyVariant.Classic.name)
+    }
+
+    fun setDarkMode(isDarkMode: Boolean) {
+        sharedPreferences.edit().putBoolean("isDarkMode", isDarkMode).apply()
+    }
+
+    fun isDarkMode(): Boolean {
+        return sharedPreferences.getBoolean("isDarkMode", false)
     }
 }
 
