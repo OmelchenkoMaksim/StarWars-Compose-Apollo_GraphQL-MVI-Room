@@ -1,9 +1,16 @@
-query GetPlanets {
-    allPlanets {
-        planets {
-            id
-            name
-            climate
+query GetPlanets($after: String, $first: Int) {
+    allPlanets(after: $after, first: $first) {
+        edges {
+            cursor
+            node {
+                id
+                name
+                climates
+            }
+        }
+        pageInfo {
+            endCursor
+            hasNextPage
         }
     }
 }

@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Place
@@ -27,6 +28,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -41,12 +43,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Shadow
@@ -71,15 +75,19 @@ import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverter
+import androidx.room.TypeConverters
 import avelios.starwarsreferenceapp.ui.theme.StarWarsReferenceAppTheme
 import avelios.starwarsreferenceapp.ui.theme.ThemeVariant
 import avelios.starwarsreferenceapp.ui.theme.TypographyVariant
-import coil.compose.rememberAsyncImagePainter
 import com.apollographql.apollo3.ApolloClient
+import com.apollographql.apollo3.api.Optional
 import com.apollographql.apollo3.exception.ApolloException
 import com.apollographql.apollo3.network.okHttpClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -119,11 +127,13 @@ class MainActivity : ComponentActivity() {
                 val characters by charactersViewModel.characters.collectAsState()
                 val starships by charactersViewModel.starships.collectAsState()
                 val planets by charactersViewModel.planets.collectAsState()
+                val isLoading by charactersViewModel.isLoading.collectAsState()
 
                 MainScreen(
                     characters = characters,
                     starships = starships,
                     planets = planets,
+                    isLoading = isLoading,
                     themeVariant = themeVariant,
                     typographyVariant = typographyVariant,
                     isDarkTheme = isDarkTheme,
@@ -131,7 +141,8 @@ class MainActivity : ComponentActivity() {
                         settingsManager.saveThemeVariant(theme)
                         settingsManager.saveTypographyVariant(typography)
                         settingsManager.setDarkMode(isDarkTheme.value)
-                    }
+                    },
+                    charactersViewModel = charactersViewModel
                 )
             }
         }
@@ -144,10 +155,12 @@ fun MainScreen(
     characters: List<StarWarsCharacter>,
     starships: List<Starship>,
     planets: List<Planet>,
+    isLoading: Boolean,
     themeVariant: MutableState<ThemeVariant>,
     typographyVariant: MutableState<TypographyVariant>,
     isDarkTheme: MutableState<Boolean>,
-    onSaveSettings: (ThemeVariant, TypographyVariant) -> Unit
+    onSaveSettings: (ThemeVariant, TypographyVariant) -> Unit,
+    charactersViewModel: CharactersViewModel
 ) {
     val navController = rememberNavController()
     var showSettingsDialog by remember { mutableStateOf(false) }
@@ -174,7 +187,10 @@ fun MainScreen(
         },
         bottomBar = { BottomNavigationBar(navController) }
     ) { paddingValues: PaddingValues ->
-        NavigationGraph(navController, characters, starships, planets, modifier = Modifier.padding(paddingValues))
+        NavigationGraph(
+            navController, characters, starships, planets, isLoading, charactersViewModel,
+            modifier = Modifier.padding(paddingValues)
+        )
 
         if (showSettingsDialog) {
             SettingsDialog(
@@ -319,12 +335,14 @@ fun NavigationGraph(
     characters: List<StarWarsCharacter>,
     starships: List<Starship>,
     planets: List<Planet>,
+    isLoading: Boolean,
+    charactersViewModel: CharactersViewModel,
     modifier: Modifier = Modifier
 ) {
     NavHost(navController, startDestination = NavigationItem.Characters.route, modifier = modifier) {
-        composable(NavigationItem.Characters.route) { CharactersScreen(characters) }
-        composable(NavigationItem.Starships.route) { StarshipsScreen(starships) }
-        composable(NavigationItem.Planets.route) { PlanetsScreen(planets) }
+        composable(NavigationItem.Characters.route) { CharactersScreen(characters, isLoading, charactersViewModel) }
+        composable(NavigationItem.Starships.route) { StarshipsScreen(starships, isLoading, charactersViewModel) }
+        composable(NavigationItem.Planets.route) { PlanetsScreen(planets, isLoading, charactersViewModel) }
     }
 }
 
@@ -335,36 +353,99 @@ fun currentRoute(navController: NavHostController): String? {
 }
 
 @Composable
-fun CharactersScreen(characters: List<StarWarsCharacter>, modifier: Modifier = Modifier) {
+fun CharactersScreen(
+    characters: List<StarWarsCharacter>,
+    isLoading: Boolean,
+    viewModel: CharactersViewModel,
+    modifier: Modifier = Modifier
+) {
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
+            .filter { it != null && it >= characters.size - 1 }
+            .distinctUntilChanged()
+            .collect {
+                viewModel.loadMoreCharacters()
+            }
+    }
+
     Column(modifier = modifier.padding(16.dp)) {
         Text(text = "Characters", style = typography.bodyLarge)
-        LazyColumn {
+        LazyColumn(state = listState) {
             items(characters) { character: StarWarsCharacter ->
                 CharacterItem(character = character)
             }
-        }
-    }
-}
-
-@Composable
-fun StarshipsScreen(starships: List<Starship>, modifier: Modifier = Modifier) {
-    Column(modifier = modifier.padding(16.dp)) {
-        Text(text = "Starships", style = typography.bodyLarge)
-        LazyColumn {
-            items(starships) { starship: Starship ->
-                StarshipItem(starship = starship)
+            item {
+                if (isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.padding(16.dp))
+                }
             }
         }
     }
 }
 
 @Composable
-fun PlanetsScreen(planets: List<Planet>, modifier: Modifier = Modifier) {
+fun StarshipsScreen(
+    starships: List<Starship>,
+    isLoading: Boolean,
+    viewModel: CharactersViewModel,
+    modifier: Modifier = Modifier
+) {
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
+            .filter { it != null && it >= starships.size - 1 }
+            .distinctUntilChanged()
+            .collect {
+                viewModel.loadMoreStarships()
+            }
+    }
+
+    Column(modifier = modifier.padding(16.dp)) {
+        Text(text = "Starships", style = typography.bodyLarge)
+        LazyColumn(state = listState) {
+            items(starships) { starship: Starship ->
+                StarshipItem(starship = starship)
+            }
+            item {
+                if (isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.padding(16.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PlanetsScreen(
+    planets: List<Planet>,
+    isLoading: Boolean,
+    viewModel: CharactersViewModel,
+    modifier: Modifier = Modifier
+) {
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
+            .filter { it != null && it >= planets.size - 1 }
+            .distinctUntilChanged()
+            .collect {
+                viewModel.loadMorePlanets()
+            }
+    }
+
     Column(modifier = modifier.padding(16.dp)) {
         Text(text = "Planets", style = typography.bodyLarge)
-        LazyColumn {
+        LazyColumn(state = listState) {
             items(planets) { planet: Planet ->
                 PlanetItem(planet = planet)
+            }
+            item {
+                if (isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.padding(16.dp))
+                }
             }
         }
     }
@@ -373,11 +454,7 @@ fun PlanetsScreen(planets: List<Planet>, modifier: Modifier = Modifier) {
 @Composable
 fun CharacterItem(character: StarWarsCharacter) {
     Column(modifier = Modifier.padding(vertical = 8.dp)) {
-        val painter = rememberAsyncImagePainter(
-            model = "https://starwars-visualguide.com/assets/img/characters/${character.id}.jpg"
-        )
-        Image(painter = painter, contentDescription = null)
-        Text(text = "Name: ${character.name}", style = MaterialTheme.typography.bodyMedium)
+        Text(text = "Name: ${character.name}", style = typography.bodyMedium)
         Text(text = "Films Count: ${character.filmsCount}", style = typography.bodyLarge)
     }
 }
@@ -385,22 +462,14 @@ fun CharacterItem(character: StarWarsCharacter) {
 @Composable
 fun StarshipItem(starship: Starship) {
     Column(modifier = Modifier.padding(8.dp)) {
-        val painter = rememberAsyncImagePainter(
-            model = "https://starwars-visualguide.com/assets/img/starships/${starship.id}.jpg"
-        )
-        Image(painter = painter, contentDescription = null)
-        Text(text = "Starship: ${starship.name}", style = MaterialTheme.typography.bodyMedium)
+        Text(text = "Starship: ${starship.name}", style = typography.bodyMedium)
     }
 }
 
 @Composable
 fun PlanetItem(planet: Planet) {
     Column(modifier = Modifier.padding(8.dp)) {
-        val painter = rememberAsyncImagePainter(
-            model = "https://starwars-visualguide.com/assets/img/planets/${planet.id}.jpg"
-        )
-        Image(painter = painter, contentDescription = null)
-        Text(text = "Planet: ${planet.name}", style = MaterialTheme.typography.bodyMedium)
+        Text(text = "Planet: ${planet.name}", style = typography.bodyMedium)
     }
 }
 
@@ -455,14 +524,27 @@ data class Starship(
 data class Planet(
     @PrimaryKey val id: String,
     val name: String,
-    val climate: String
+    val climates: List<String>
 )
 
 @Database(entities = [StarWarsCharacter::class, Starship::class, Planet::class], version = 1, exportSchema = false)
+@TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun characterDao(): CharacterDao
     abstract fun starshipDao(): StarshipDao
     abstract fun planetDao(): PlanetDao
+}
+
+class Converters {
+    @TypeConverter
+    fun fromString(value: String): List<String> {
+        return value.split(",").map { it.trim() }
+    }
+
+    @TypeConverter
+    fun fromList(list: List<String>): String {
+        return list.joinToString(",")
+    }
 }
 
 class App : Application() {
@@ -593,6 +675,18 @@ class CharactersViewModel(
     private val _planets = MutableStateFlow<List<Planet>>(emptyList())
     val planets: StateFlow<List<Planet>> = _planets
 
+    private var charactersEndCursor: String? = null
+    private var charactersHasNextPage: Boolean = true
+
+    private var starshipsEndCursor: String? = null
+    private var starshipsHasNextPage: Boolean = true
+
+    private var planetsEndCursor: String? = null
+    private var planetsHasNextPage: Boolean = true
+
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading
+
     init {
         viewModelScope.launch {
             fetchCharacters()
@@ -614,77 +708,131 @@ class CharactersViewModel(
     }
 
     private suspend fun fetchCharacters() {
+        _isLoading.value = true
         val charactersList = getCharactersFromServer() ?: characterDao.getAllCharacters()
         _characters.value = charactersList
         if (charactersList.isNotEmpty()) {
             characterDao.insertCharacters(*charactersList.toTypedArray())
         }
+        _isLoading.value = false
     }
 
-    private suspend fun getCharactersFromServer(): List<StarWarsCharacter>? {
+    private suspend fun getCharactersFromServer(after: String? = null, first: Int = 10): List<StarWarsCharacter>? {
         val response = try {
-            apolloClient.query(GetCharactersQuery()).execute()
+            apolloClient.query(GetCharactersQuery(Optional.presentIfNotNull(after), Optional.Present(first))).execute()
         } catch (e: ApolloException) {
             println("ApolloException: $e")
             return null
         }
 
-        return response.data?.allPeople?.people?.map { person ->
-            StarWarsCharacter(
-                id = person?.id ?: "",
-                name = person?.name ?: "",
-                filmsCount = person?.filmConnection?.totalCount ?: 0
-            )
+        val newCharacters = response.data?.allPeople?.edges?.mapNotNull { edge ->
+            edge?.node?.let { person ->
+                StarWarsCharacter(
+                    id = person.id,
+                    name = person.name,
+                    filmsCount = person.filmConnection?.totalCount ?: 0
+                )
+            }
+        } ?: emptyList()
+
+        charactersEndCursor = response.data?.allPeople?.pageInfo?.endCursor
+        charactersHasNextPage = response.data?.allPeople?.pageInfo?.hasNextPage ?: false
+
+        return newCharacters
+    }
+
+    suspend fun loadMoreCharacters() {
+        if (charactersHasNextPage) {
+            _isLoading.value = true
+            val moreCharacters = getCharactersFromServer(charactersEndCursor)
+            _characters.value += moreCharacters ?: emptyList()
+            _isLoading.value = false
         }
     }
 
     private suspend fun fetchStarships() {
+        _isLoading.value = true
         val starshipsList = getStarshipsFromServer() ?: starshipDao.getAllStarships()
         _starships.value = starshipsList
         if (starshipsList.isNotEmpty()) {
             starshipDao.insertStarships(*starshipsList.toTypedArray())
         }
+        _isLoading.value = false
     }
 
-    private suspend fun getStarshipsFromServer(): List<Starship>? {
+    private suspend fun getStarshipsFromServer(after: String? = null, first: Int = 10): List<Starship>? {
         val response = try {
-            apolloClient.query(GetStarshipsQuery()).execute()
+            apolloClient.query(GetStarshipsQuery(Optional.presentIfNotNull(after), Optional.Present(first))).execute()
         } catch (e: ApolloException) {
             println("ApolloException: $e")
             return null
         }
 
-        return response.data?.allStarships?.starships?.map { starship ->
-            Starship(
-                id = starship?.id ?: "",
-                name = starship?.name ?: "",
-                model = starship?.model ?: ""
-            )
+        val newStarships = response.data?.allStarships?.edges?.mapNotNull { edge ->
+            edge?.node?.let { starship ->
+                Starship(
+                    id = starship.id,
+                    name = starship.name,
+                    model = starship.model ?: ""
+                )
+            }
+        } ?: emptyList()
+
+        starshipsEndCursor = response.data?.allStarships?.pageInfo?.endCursor
+        starshipsHasNextPage = response.data?.allStarships?.pageInfo?.hasNextPage ?: false
+
+        return newStarships
+    }
+
+    suspend fun loadMoreStarships() {
+        if (starshipsHasNextPage) {
+            _isLoading.value = true
+            val moreStarships = getStarshipsFromServer(starshipsEndCursor)
+            _starships.value += moreStarships ?: emptyList()
+            _isLoading.value = false
         }
     }
 
     private suspend fun fetchPlanets() {
+        _isLoading.value = true
         val planetsList = getPlanetsFromServer() ?: planetDao.getAllPlanets()
         _planets.value = planetsList
         if (planetsList.isNotEmpty()) {
             planetDao.insertPlanets(*planetsList.toTypedArray())
         }
+        _isLoading.value = false
     }
 
-    private suspend fun getPlanetsFromServer(): List<Planet>? {
+    private suspend fun getPlanetsFromServer(after: String? = null, first: Int = 10): List<Planet>? {
         val response = try {
-            apolloClient.query(GetPlanetsQuery()).execute()
+            apolloClient.query(GetPlanetsQuery(Optional.presentIfNotNull(after), Optional.Present(first))).execute()
         } catch (e: ApolloException) {
             println("ApolloException: $e")
             return null
         }
 
-        return response.data?.allPlanets?.planets?.map { planet ->
-            Planet(
-                id = planet?.id ?: "",
-                name = planet?.name ?: "",
-                climate = planet?.climate ?: ""
-            )
+        val newPlanets = response.data?.allPlanets?.edges?.mapNotNull { edge ->
+            edge?.node?.let { planet ->
+                Planet(
+                    id = planet.id,
+                    name = planet.name,
+                    climates = planet.climates?.mapNotNull { it } ?: emptyList()
+                )
+            }
+        } ?: emptyList()
+
+        planetsEndCursor = response.data?.allPlanets?.pageInfo?.endCursor
+        planetsHasNextPage = response.data?.allPlanets?.pageInfo?.hasNextPage ?: false
+
+        return newPlanets
+    }
+
+    suspend fun loadMorePlanets() {
+        if (planetsHasNextPage) {
+            _isLoading.value = true
+            val morePlanets = getPlanetsFromServer(planetsEndCursor)
+            _planets.value += morePlanets ?: emptyList()
+            _isLoading.value = false
         }
     }
 }

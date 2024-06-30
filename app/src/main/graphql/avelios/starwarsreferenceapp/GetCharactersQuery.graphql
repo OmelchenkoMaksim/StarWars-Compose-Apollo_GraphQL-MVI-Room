@@ -1,11 +1,18 @@
-query GetCharacters {
-    allPeople {
-        people {
-            id
-            name
-            filmConnection {
-                totalCount
+query GetCharacters($after: String, $first: Int) {
+    allPeople(after: $after, first: $first) {
+        edges {
+            cursor
+            node {
+                id
+                name
+                filmConnection {
+                    totalCount
+                }
             }
+        }
+        pageInfo {
+            endCursor
+            hasNextPage
         }
     }
 }

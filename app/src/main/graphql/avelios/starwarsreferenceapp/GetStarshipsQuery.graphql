@@ -1,9 +1,16 @@
-query GetStarships {
-    allStarships {
-        starships {
-            id
-            name
-            model
+query GetStarships($after: String, $first: Int) {
+    allStarships(after: $after, first: $first) {
+        edges {
+            cursor
+            node {
+                id
+                name
+                model
+            }
+        }
+        pageInfo {
+            endCursor
+            hasNextPage
         }
     }
 }

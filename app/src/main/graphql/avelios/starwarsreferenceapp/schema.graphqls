@@ -1,11 +1,17 @@
 type Query {
-    allPeople: PeopleConnection
-    allPlanets: PlanetsConnection
-    allStarships: StarshipsConnection
+    allPeople(after: String, first: Int): PeopleConnection
+    allPlanets(after: String, first: Int): PlanetsConnection
+    allStarships(after: String, first: Int): StarshipsConnection
 }
 
 type PeopleConnection {
-    people: [Person]
+    edges: [PeopleEdge]
+    pageInfo: PageInfo
+}
+
+type PeopleEdge {
+    cursor: String
+    node: Person
 }
 
 type Person {
@@ -19,21 +25,38 @@ type FilmConnection {
 }
 
 type PlanetsConnection {
-    planets: [Planet]
+    edges: [PlanetsEdge]
+    pageInfo: PageInfo
+}
+
+type PlanetsEdge {
+    cursor: String
+    node: Planet
 }
 
 type Planet {
     id: ID!
     name: String!
-    climate: String
+    climates: [String]
 }
 
 type StarshipsConnection {
-    starships: [Starship]
+    edges: [StarshipsEdge]
+    pageInfo: PageInfo
+}
+
+type StarshipsEdge {
+    cursor: String
+    node: Starship
 }
 
 type Starship {
     id: ID!
     name: String!
     model: String
+}
+
+type PageInfo {
+    endCursor: String
+    hasNextPage: Boolean
 }
