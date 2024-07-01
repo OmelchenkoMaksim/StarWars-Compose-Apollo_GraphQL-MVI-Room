@@ -14,18 +14,43 @@ import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MaterialTheme.typography
-import androidx.compose.runtime.*
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Shadow
@@ -41,7 +66,26 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.room.*
+import androidx.paging.LoadState
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.PagingData
+import androidx.paging.PagingSource
+import androidx.paging.PagingState
+import androidx.paging.cachedIn
+import androidx.paging.compose.LazyPagingItems
+import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.room.Dao
+import androidx.room.Database
+import androidx.room.Entity
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.PrimaryKey
+import androidx.room.Query
+import androidx.room.Room
+import androidx.room.RoomDatabase
+import androidx.room.TypeConverter
+import androidx.room.TypeConverters
 import avelios.starwarsreferenceapp.ui.theme.StarWarsReferenceAppTheme
 import avelios.starwarsreferenceapp.ui.theme.ThemeVariant
 import avelios.starwarsreferenceapp.ui.theme.TypographyVariant
@@ -49,7 +93,11 @@ import com.apollographql.apollo3.ApolloClient
 import com.apollographql.apollo3.api.Optional
 import com.apollographql.apollo3.exception.ApolloException
 import com.apollographql.apollo3.network.okHttpClient
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -142,6 +190,84 @@ fun MainScreen(
 
         is MainState.Error -> {
             Text(text = "Error: ${(state as MainState.Error).message}")
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DataScreen(
+    onFavoriteClick: (String, Boolean) -> Unit,
+    showSettingsDialog: () -> Unit,
+    toggleTheme: () -> Unit
+) {
+    val navController = rememberNavController()
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Star Wars APP") },
+                actions = {
+                    IconButton(onClick = showSettingsDialog) {
+                        Icon(imageVector = Icons.Default.Star, contentDescription = "Settings")
+                    }
+                    IconButton(onClick = toggleTheme) {
+                        Image(painter = painterResource(id = R.drawable.ic_day_night), contentDescription = "Toggle Theme")
+                    }
+                }
+            )
+        },
+        bottomBar = {
+            BottomNavigationBar(navController)
+        }
+    ) { paddingValues ->
+        NavHost(navController, startDestination = NavigationItem.Characters.route, modifier = Modifier.padding(paddingValues)) {
+            composable(NavigationItem.Characters.route) {
+                CharactersScreen(
+                    onCharacterClick = { characterId ->
+                        navController.navigate("character_details/$characterId")
+                    },
+                    onFavoriteClick = onFavoriteClick
+                )
+            }
+            composable(NavigationItem.Starships.route) {
+                val viewModel: MainViewModel = koinViewModel()
+                val state by viewModel.state.collectAsState()
+                if (state is MainState.DataLoaded) {
+                    StarshipsScreen(
+                        onStarshipClick = { starshipId ->
+                            navController.navigate("starship_details/$starshipId")
+                        }
+                    )
+                } else {
+                    CircularProgressIndicator()
+                }
+            }
+            composable(NavigationItem.Planets.route) {
+                val viewModel: MainViewModel = koinViewModel()
+                val state by viewModel.state.collectAsState()
+                if (state is MainState.DataLoaded) {
+                    PlanetsScreen(
+                        onPlanetClick = { planetId ->
+                            navController.navigate("planet_details/$planetId")
+                        }
+                    )
+                } else {
+                    CircularProgressIndicator()
+                }
+            }
+            composable("character_details/{characterId}") { backStackEntry ->
+                val characterId = backStackEntry.arguments?.getString("characterId") ?: return@composable
+                CharacterDetailsScreen(characterId = characterId)
+            }
+            composable("starship_details/{starshipId}") { backStackEntry ->
+                val starshipId = backStackEntry.arguments?.getString("starshipId") ?: return@composable
+                StarshipDetailsScreen(starshipId = starshipId)
+            }
+            composable("planet_details/{planetId}") { backStackEntry ->
+                val planetId = backStackEntry.arguments?.getString("planetId") ?: return@composable
+                PlanetDetailsScreen(planetId = planetId)
+            }
         }
     }
 }
@@ -239,98 +365,6 @@ fun OutlinedText(text: String) {
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun DataScreen(
-    onFavoriteClick: (String, Boolean) -> Unit,
-    showSettingsDialog: () -> Unit,
-    toggleTheme: () -> Unit
-) {
-    val navController = rememberNavController()
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Star Wars APP") },
-                actions = {
-                    IconButton(onClick = showSettingsDialog) {
-                        Icon(imageVector = Icons.Default.Star, contentDescription = "Settings")
-                    }
-                    IconButton(onClick = toggleTheme) {
-                        Image(painter = painterResource(id = R.drawable.ic_day_night), contentDescription = "Toggle Theme")
-                    }
-                }
-            )
-        },
-        bottomBar = {
-            BottomNavigationBar(navController)
-        }
-    ) { paddingValues ->
-        NavHost(navController, startDestination = NavigationItem.Characters.route, modifier = Modifier.padding(paddingValues)) {
-            composable(NavigationItem.Characters.route) {
-                val viewModel: MainViewModel = koinViewModel()
-                val state by viewModel.state.collectAsState()
-                if (state is MainState.DataLoaded) {
-                    CharactersScreen(
-                        characters = (state as MainState.DataLoaded).characters,
-                        isLoading = false,
-                        onCharacterClick = { characterId ->
-                            navController.navigate("character_details/$characterId")
-                        },
-                        onFavoriteClick = onFavoriteClick
-                    )
-                } else {
-                    CircularProgressIndicator()
-                }
-            }
-            composable(NavigationItem.Starships.route) {
-                val viewModel: MainViewModel = koinViewModel()
-                val state by viewModel.state.collectAsState()
-                if (state is MainState.DataLoaded) {
-                    StarshipsScreen(
-                        starships = (state as MainState.DataLoaded).starships,
-                        isLoading = false,
-                        onStarshipClick = { starshipId ->
-                            navController.navigate("starship_details/$starshipId")
-                        },
-                        onLoadMore = { viewModel.handleIntent(MainIntent.LoadMoreStarships) }
-                    )
-                } else {
-                    CircularProgressIndicator()
-                }
-            }
-            composable(NavigationItem.Planets.route) {
-                val viewModel: MainViewModel = koinViewModel()
-                val state by viewModel.state.collectAsState()
-                if (state is MainState.DataLoaded) {
-                    PlanetsScreen(
-                        planets = (state as MainState.DataLoaded).planets,
-                        isLoading = false,
-                        onPlanetClick = { planetId ->
-                            navController.navigate("planet_details/$planetId")
-                        },
-                        onLoadMore = { viewModel.handleIntent(MainIntent.LoadMorePlanets) }
-                    )
-                } else {
-                    CircularProgressIndicator()
-                }
-            }
-            composable("character_details/{characterId}") { backStackEntry ->
-                val characterId = backStackEntry.arguments?.getString("characterId") ?: return@composable
-                CharacterDetailsScreen(characterId = characterId)
-            }
-            composable("starship_details/{starshipId}") { backStackEntry ->
-                val starshipId = backStackEntry.arguments?.getString("starshipId") ?: return@composable
-                StarshipDetailsScreen(starshipId = starshipId)
-            }
-            composable("planet_details/{planetId}") { backStackEntry ->
-                val planetId = backStackEntry.arguments?.getString("planetId") ?: return@composable
-                PlanetDetailsScreen(planetId = planetId)
-            }
-        }
-    }
-}
-
 @Composable
 fun BottomNavigationBar(navController: NavHostController) {
     val items = listOf(
@@ -367,34 +401,40 @@ fun currentRoute(navController: NavHostController): String? {
 
 @Composable
 fun CharactersScreen(
-    characters: List<StarWarsCharacter>,
-    isLoading: Boolean,
     onCharacterClick: (String) -> Unit,
     onFavoriteClick: (String, Boolean) -> Unit
 ) {
-    val listState = rememberLazyListState()
-    var showFavorites by remember { mutableStateOf(false) }
+    val viewModel: MainViewModel = koinViewModel()
+    val lazyPagingItems: LazyPagingItems<StarWarsCharacter> = viewModel.charactersPager.collectAsLazyPagingItems()
 
-    Column(modifier = Modifier.padding(16.dp)) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(text = "Characters", style = typography.bodyLarge)
-            Button(onClick = { showFavorites = !showFavorites }) {
-                Text(
-                    text = if (showFavorites) "Show All" else "Show Favorites",
-                    color = MaterialTheme.colorScheme.onBackground,
-                )
-            }
-        }
-        val displayCharacters = if (showFavorites) characters.filter { it.isFavorite } else characters
-        LazyColumn(state = listState) {
-            items(displayCharacters) { character: StarWarsCharacter ->
-                CharacterItem(character = character, onClick = { onCharacterClick(character.id) }) {
-                    onFavoriteClick(character.id, !character.isFavorite)
+    LazyColumn {
+        items(lazyPagingItems.itemCount) { index ->
+            val character = lazyPagingItems[index]
+            character?.let {
+                CharacterItem(character = it, onClick = { onCharacterClick(it.id) }) {
+                    onFavoriteClick(it.id, !it.isFavorite)
                 }
             }
-            item {
-                if (isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.padding(16.dp))
+        }
+
+        lazyPagingItems.apply {
+            when {
+                loadState.refresh is LoadState.Loading -> {
+                    item { CircularProgressIndicator() }
+                }
+
+                loadState.append is LoadState.Loading -> {
+                    item { CircularProgressIndicator() }
+                }
+
+                loadState.refresh is LoadState.Error -> {
+                    val e = lazyPagingItems.loadState.refresh as LoadState.Error
+                    item { Text(text = "Error: ${e.error.localizedMessage}") }
+                }
+
+                loadState.append is LoadState.Error -> {
+                    val e = lazyPagingItems.loadState.append as LoadState.Error
+                    item { Text(text = "Error: ${e.error.localizedMessage}") }
                 }
             }
         }
@@ -403,32 +443,37 @@ fun CharactersScreen(
 
 @Composable
 fun StarshipsScreen(
-    starships: List<Starship>,
-    isLoading: Boolean,
-    onStarshipClick: (String) -> Unit,
-    onLoadMore: () -> Unit,
-    modifier: Modifier = Modifier
+    onStarshipClick: (String) -> Unit
 ) {
-    val listState = rememberLazyListState()
+    val viewModel: MainViewModel = koinViewModel()
+    val lazyPagingItems: LazyPagingItems<Starship> = viewModel.starshipsPager.collectAsLazyPagingItems()
 
-    LaunchedEffect(listState) {
-        snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
-            .filter { it != null && it >= starships.size - 1 }
-            .distinctUntilChanged()
-            .collect {
-                onLoadMore()
+    LazyColumn {
+        items(lazyPagingItems.itemCount) { index ->
+            val starship = lazyPagingItems[index]
+            starship?.let {
+                StarshipItem(starship = it, onClick = { onStarshipClick(it.id) })
             }
-    }
+        }
 
-    Column(modifier = modifier.padding(16.dp)) {
-        Text(text = "Starships", style = typography.bodyLarge)
-        LazyColumn(state = listState) {
-            items(starships) { starship: Starship ->
-                StarshipItem(starship = starship, onClick = { onStarshipClick(starship.id) })
-            }
-            item {
-                if (isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.padding(16.dp))
+        lazyPagingItems.apply {
+            when {
+                loadState.refresh is LoadState.Loading -> {
+                    item { CircularProgressIndicator() }
+                }
+
+                loadState.append is LoadState.Loading -> {
+                    item { CircularProgressIndicator() }
+                }
+
+                loadState.refresh is LoadState.Error -> {
+                    val e = lazyPagingItems.loadState.refresh as LoadState.Error
+                    item { Text(text = "Error: ${e.error.localizedMessage}") }
+                }
+
+                loadState.append is LoadState.Error -> {
+                    val e = lazyPagingItems.loadState.append as LoadState.Error
+                    item { Text(text = "Error: ${e.error.localizedMessage}") }
                 }
             }
         }
@@ -437,32 +482,37 @@ fun StarshipsScreen(
 
 @Composable
 fun PlanetsScreen(
-    planets: List<Planet>,
-    isLoading: Boolean,
-    onPlanetClick: (String) -> Unit,
-    onLoadMore: () -> Unit,
-    modifier: Modifier = Modifier
+    onPlanetClick: (String) -> Unit
 ) {
-    val listState = rememberLazyListState()
+    val viewModel: MainViewModel = koinViewModel()
+    val lazyPagingItems: LazyPagingItems<Planet> = viewModel.planetsPager.collectAsLazyPagingItems()
 
-    LaunchedEffect(listState) {
-        snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
-            .filter { it != null && it >= planets.size - 1 }
-            .distinctUntilChanged()
-            .collect {
-                onLoadMore()
+    LazyColumn {
+        items(lazyPagingItems.itemCount) { index ->
+            val planet = lazyPagingItems[index]
+            planet?.let {
+                PlanetItem(planet = it, onClick = { onPlanetClick(it.id) })
             }
-    }
+        }
 
-    Column(modifier = modifier.padding(16.dp)) {
-        Text(text = "Planets", style = typography.bodyLarge)
-        LazyColumn(state = listState) {
-            items(planets) { planet: Planet ->
-                PlanetItem(planet = planet, onClick = { onPlanetClick(planet.id) })
-            }
-            item {
-                if (isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.padding(16.dp))
+        lazyPagingItems.apply {
+            when {
+                loadState.refresh is LoadState.Loading -> {
+                    item { CircularProgressIndicator() }
+                }
+
+                loadState.append is LoadState.Loading -> {
+                    item { CircularProgressIndicator() }
+                }
+
+                loadState.refresh is LoadState.Error -> {
+                    val e = lazyPagingItems.loadState.refresh as LoadState.Error
+                    item { Text(text = "Error: ${e.error.localizedMessage}") }
+                }
+
+                loadState.append is LoadState.Error -> {
+                    val e = lazyPagingItems.loadState.append as LoadState.Error
+                    item { Text(text = "Error: ${e.error.localizedMessage}") }
                 }
             }
         }
@@ -552,6 +602,133 @@ fun PlanetDetailsScreen(planetId: String) {
                 Text(text = "Terrains: ${planetDetails.terrains.joinToString()}", style = typography.bodyMedium)
                 Text(text = "Surface Water: ${planetDetails.surfaceWater}", style = typography.bodyMedium)
             }
+        }
+    }
+}
+
+class CharacterPagingSource(
+    private val apolloClient: ApolloClient
+) : PagingSource<String, StarWarsCharacter>() {
+    override suspend fun load(params: LoadParams<String>): LoadResult<String, StarWarsCharacter> {
+        return try {
+            val response = apolloClient.query(GetCharactersQuery(Optional.presentIfNotNull(params.key), Optional.present(params.loadSize))).execute()
+            val characters = response.data?.allPeople?.edges?.mapNotNull { edge ->
+                edge?.node?.let { person ->
+                    StarWarsCharacter(
+                        id = person.id,
+                        name = person.name,
+                        filmsCount = person.filmConnection?.totalCount ?: 0,
+                        birthYear = person.birthYear ?: "Unknown",
+                        eyeColor = person.eyeColor ?: "Unknown",
+                        gender = person.gender ?: "Unknown",
+                        hairColor = person.hairColor ?: "Unknown",
+                        height = person.height ?: 0,
+                        mass = person.mass ?: 0.0,
+                        skinColor = person.skinColor ?: "Unknown",
+                        homeworld = person.homeworld?.name ?: "Unknown"
+                    )
+                }
+            } ?: emptyList()
+
+            val nextKey = response.data?.allPeople?.pageInfo?.endCursor
+
+            LoadResult.Page(
+                data = characters,
+                prevKey = null,
+                nextKey = nextKey
+            )
+        } catch (e: Exception) {
+            LoadResult.Error(e)
+        }
+    }
+
+    override fun getRefreshKey(state: PagingState<String, StarWarsCharacter>): String? {
+        return state.anchorPosition?.let { anchorPosition ->
+            state.closestPageToPosition(anchorPosition)?.nextKey
+        }
+    }
+}
+
+class PlanetPagingSource(
+    private val apolloClient: ApolloClient
+) : PagingSource<String, Planet>() {
+    override suspend fun load(params: LoadParams<String>): LoadResult<String, Planet> {
+        return try {
+            val response = apolloClient.query(GetPlanetsQuery(Optional.presentIfNotNull(params.key), Optional.present(params.loadSize))).execute()
+            val planets = response.data?.allPlanets?.edges?.mapNotNull { edge ->
+                edge?.node?.let { planet ->
+                    Planet(
+                        id = planet.id,
+                        name = planet.name,
+                        climates = planet.climates?.filterNotNull() ?: emptyList(),
+                        diameter = planet.diameter ?: 0,
+                        rotationPeriod = planet.rotationPeriod ?: 0,
+                        orbitalPeriod = planet.orbitalPeriod ?: 0,
+                        gravity = planet.gravity ?: "Unknown",
+                        population = planet.population ?: 0.0,
+                        terrains = planet.terrains?.filterNotNull() ?: emptyList(),
+                        surfaceWater = planet.surfaceWater ?: 0.0
+                    )
+                }
+            } ?: emptyList()
+
+            val nextKey = response.data?.allPlanets?.pageInfo?.endCursor
+
+            LoadResult.Page(
+                data = planets,
+                prevKey = null,
+                nextKey = nextKey
+            )
+        } catch (e: Exception) {
+            LoadResult.Error(e)
+        }
+    }
+
+    override fun getRefreshKey(state: PagingState<String, Planet>): String? {
+        return state.anchorPosition?.let { anchorPosition ->
+            state.closestPageToPosition(anchorPosition)?.nextKey
+        }
+    }
+}
+
+class StarshipPagingSource(
+    private val apolloClient: ApolloClient
+) : PagingSource<String, Starship>() {
+    override suspend fun load(params: LoadParams<String>): LoadResult<String, Starship> {
+        return try {
+            val response = apolloClient.query(GetStarshipsQuery(Optional.presentIfNotNull(params.key), Optional.present(params.loadSize))).execute()
+            val starships = response.data?.allStarships?.edges?.mapNotNull { edge ->
+                edge?.node?.let { starship ->
+                    Starship(
+                        id = starship.id,
+                        name = starship.name,
+                        model = starship.model ?: "",
+                        starshipClass = starship.starshipClass ?: "",
+                        manufacturers = starship.manufacturers?.filterNotNull() ?: emptyList(),
+                        length = starship.length?.toFloat() ?: 0f,
+                        crew = starship.crew ?: "",
+                        passengers = starship.passengers ?: "",
+                        maxAtmospheringSpeed = starship.maxAtmospheringSpeed ?: 0,
+                        hyperdriveRating = starship.hyperdriveRating?.toFloat() ?: 0f
+                    )
+                }
+            } ?: emptyList()
+
+            val nextKey = response.data?.allStarships?.pageInfo?.endCursor
+
+            LoadResult.Page(
+                data = starships,
+                prevKey = null,
+                nextKey = nextKey
+            )
+        } catch (e: Exception) {
+            LoadResult.Error(e)
+        }
+    }
+
+    override fun getRefreshKey(state: PagingState<String, Starship>): String? {
+        return state.anchorPosition?.let { anchorPosition ->
+            state.closestPageToPosition(anchorPosition)?.nextKey
         }
     }
 }
@@ -857,6 +1034,30 @@ class MainViewModel(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
 
+    val charactersPager: Flow<PagingData<StarWarsCharacter>> = Pager(
+        config = PagingConfig(
+            pageSize = 10,
+            enablePlaceholders = false
+        ),
+        pagingSourceFactory = { CharacterPagingSource(apolloClient) }
+    ).flow.cachedIn(viewModelScope)
+
+    val planetsPager: Flow<PagingData<Planet>> = Pager(
+        config = PagingConfig(
+            pageSize = 10,
+            enablePlaceholders = false
+        ),
+        pagingSourceFactory = { PlanetPagingSource(apolloClient) }
+    ).flow.cachedIn(viewModelScope)
+
+    val starshipsPager: Flow<PagingData<Starship>> = Pager(
+        config = PagingConfig(
+            pageSize = 10,
+            enablePlaceholders = false
+        ),
+        pagingSourceFactory = { StarshipPagingSource(apolloClient) }
+    ).flow.cachedIn(viewModelScope)
+
     init {
         handleIntent(MainIntent.LoadData)
     }
@@ -879,9 +1080,14 @@ class MainViewModel(
     private suspend fun loadData() {
         _state.value = MainState.Loading
         try {
-            val characters = fetchCharacters()
-            val starships = fetchStarships()
-            val planets = fetchPlanets()
+            val charactersDeferred = viewModelScope.async(Dispatchers.IO) { fetchCharacters() }
+            val starshipsDeferred = viewModelScope.async(Dispatchers.IO) { fetchStarships() }
+            val planetsDeferred = viewModelScope.async(Dispatchers.IO) { fetchPlanets() }
+
+            val characters = charactersDeferred.await()
+            val starships = starshipsDeferred.await()
+            val planets = planetsDeferred.await()
+
             _state.value = MainState.DataLoaded(characters, starships, planets)
         } catch (e: Exception) {
             _state.value = MainState.Error(e.message ?: "Unknown Error")
@@ -951,11 +1157,42 @@ class MainViewModel(
     }
 
     private suspend fun fetchCharacters(): List<StarWarsCharacter> {
-        val charactersList = getCharactersFromServer() ?: characterDao.getAllCharacters()
+        val cachedCharacters = characterDao.getAllCharacters()
+        if (cachedCharacters.isNotEmpty()) {
+            return cachedCharacters
+        }
+
+        val charactersList = getCharactersFromServer() ?: emptyList()
         if (charactersList.isNotEmpty()) {
             characterDao.insertCharacters(*charactersList.toTypedArray())
         }
         return charactersList
+    }
+
+    private suspend fun fetchStarships(): List<Starship> {
+        val cachedStarships = starshipDao.getAllStarships()
+        if (cachedStarships.isNotEmpty()) {
+            return cachedStarships
+        }
+
+        val starshipsList = getStarshipsFromServer() ?: emptyList()
+        if (starshipsList.isNotEmpty()) {
+            starshipDao.insertStarships(*starshipsList.toTypedArray())
+        }
+        return starshipsList
+    }
+
+    private suspend fun fetchPlanets(): List<Planet> {
+        val cachedPlanets = planetDao.getAllPlanets()
+        if (cachedPlanets.isNotEmpty()) {
+            return cachedPlanets
+        }
+
+        val planetsList = getPlanetsFromServer() ?: emptyList()
+        if (planetsList.isNotEmpty()) {
+            planetDao.insertPlanets(*planetsList.toTypedArray())
+        }
+        return planetsList
     }
 
     private suspend fun getCharactersFromServer(after: String? = null, first: Int = 10): List<StarWarsCharacter>? {
@@ -1004,14 +1241,6 @@ class MainViewModel(
         }
     }
 
-    private suspend fun fetchStarships(): List<Starship> {
-        val starshipsList = getStarshipsFromServer() ?: starshipDao.getAllStarships()
-        if (starshipsList.isNotEmpty()) {
-            starshipDao.insertStarships(*starshipsList.toTypedArray())
-        }
-        return starshipsList
-    }
-
     private suspend fun getStarshipsFromServer(after: String? = null, first: Int = 10): List<Starship>? {
         val response = try {
             apolloClient.query(GetStarshipsQuery(Optional.presentIfNotNull(after), Optional.present(first))).execute()
@@ -1055,14 +1284,6 @@ class MainViewModel(
                 _state.value = MainState.Error(e.message ?: "Unknown Error")
             }
         }
-    }
-
-    private suspend fun fetchPlanets(): List<Planet> {
-        val planetsList = getPlanetsFromServer() ?: planetDao.getAllPlanets()
-        if (planetsList.isNotEmpty()) {
-            planetDao.insertPlanets(*planetsList.toTypedArray())
-        }
-        return planetsList
     }
 
     private suspend fun getPlanetsFromServer(after: String? = null, first: Int = 10): List<Planet>? {
