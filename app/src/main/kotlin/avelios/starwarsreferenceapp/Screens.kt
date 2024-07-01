@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -54,54 +53,25 @@ import org.koin.androidx.compose.koinViewModel
 fun CharactersScreen(
     showOnlyFavorites: Boolean,
     onCharacterClick: (String) -> Unit,
-    onFavoriteClick: (String, Boolean) -> Unit
+    onFavoriteClick: (String, Boolean) -> Unit,
+    characters: LazyPagingItems<StarWarsCharacter>,
+    favoriteCharacters: Map<String, Boolean>
 ) {
-    val viewModel: MainViewModel = koinViewModel()
-    val lazyPagingItems: LazyPagingItems<StarWarsCharacter> = viewModel.charactersPager.collectAsLazyPagingItems()
-
-    val filteredItems = if (showOnlyFavorites) {
-        lazyPagingItems.itemSnapshotList.items.filter { it.isFavorite }
-    } else {
-        lazyPagingItems.itemSnapshotList.items
-    }
-
-    Box(modifier = Modifier.fillMaxSize()) {
-        if (filteredItems.isEmpty()) {
-            Text(
-                text = if (showOnlyFavorites) "No favorites found" else "No characters found",
-                modifier = Modifier.align(Alignment.TopCenter).padding(12.dp),
-                style = MaterialTheme.typography.bodyLarge
-            )
-        } else {
-            LazyColumn {
-                items(filteredItems) { character ->
-                    character.let {
-                        CharacterItem(character = it, onClick = { onCharacterClick(it.id) }) {
-                            onFavoriteClick(it.id, !it.isFavorite)
-                        }
-                    }
-                }
-            }
-        }
-
-        lazyPagingItems.apply {
-            when {
-                loadState.refresh is LoadState.Loading -> {
-                    LoadingIndicator()
-                }
-
-                loadState.append is LoadState.Loading -> {
-                    LoadingIndicator()
-                }
-
-                loadState.refresh is LoadState.Error -> {
-                    val e = lazyPagingItems.loadState.refresh as LoadState.Error
-                    Text(text = "Error: ${e.error.localizedMessage}", modifier = Modifier.align(Alignment.Center))
-                }
-
-                loadState.append is LoadState.Error -> {
-                    val e = lazyPagingItems.loadState.append as LoadState.Error
-                    Text(text = "Error: ${e.error.localizedMessage}", modifier = Modifier.align(Alignment.Center))
+    LazyColumn {
+        items(
+            count = characters.itemCount,
+            key = { index -> characters[index]?.id ?: index.toString() }
+        ) { index ->
+            val character = characters[index]
+            character?.let {
+                val isFavorite = favoriteCharacters[it.id] ?: it.isFavorite
+                if (!showOnlyFavorites || isFavorite) {
+                    CharacterItem(
+                        character = it,
+                        isFavorite = isFavorite,
+                        onClick = { onCharacterClick(it.id) },
+                        onFavoriteClick = { onFavoriteClick(it.id, !isFavorite) }
+                    )
                 }
             }
         }
@@ -317,7 +287,12 @@ fun PlanetDetailsScreen(planetId: String) {
 }
 
 @Composable
-fun CharacterItem(character: StarWarsCharacter, onClick: () -> Unit, onFavoriteClick: () -> Unit) {
+fun CharacterItem(
+    character: StarWarsCharacter,
+    isFavorite: Boolean,
+    onClick: () -> Unit,
+    onFavoriteClick: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -332,8 +307,8 @@ fun CharacterItem(character: StarWarsCharacter, onClick: () -> Unit, onFavoriteC
         }
         IconButton(onClick = onFavoriteClick) {
             Icon(
-                imageVector = if (character.isFavorite) Icons.Default.Favorite else Icons.Default.Star,
-                contentDescription = if (character.isFavorite) "Remove from favorites" else "Add to favorites"
+                imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.Star,
+                contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites"
             )
         }
     }

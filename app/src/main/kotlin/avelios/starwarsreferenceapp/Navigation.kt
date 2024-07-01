@@ -50,6 +50,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.paging.compose.LazyPagingItems
+import androidx.paging.compose.collectAsLazyPagingItems
 import avelios.starwarsreferenceapp.ui.theme.ThemeVariant
 import avelios.starwarsreferenceapp.ui.theme.TypographyVariant
 
@@ -60,6 +62,7 @@ fun MainScreen(
     toggleTheme: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
+    val favoriteCharacters by viewModel.favoriteCharacters.collectAsState()
 
     when (state) {
         is MainState.Loading -> {
@@ -67,12 +70,16 @@ fun MainScreen(
         }
 
         is MainState.DataLoaded -> {
+            val characters = viewModel.charactersPager.collectAsLazyPagingItems()
+
             DataScreen(
                 onFavoriteClick = { id, isFavorite ->
-                    viewModel.handleIntent(MainIntent.UpdateFavoriteStatus(id, isFavorite))
+                    viewModel.updateFavoriteStatus(id, isFavorite)
                 },
                 showSettingsDialog = showSettingsDialog,
-                toggleTheme = toggleTheme
+                toggleTheme = toggleTheme,
+                characters = characters,
+                favoriteCharacters = favoriteCharacters
             )
         }
 
@@ -87,7 +94,9 @@ fun MainScreen(
 fun DataScreen(
     onFavoriteClick: (String, Boolean) -> Unit,
     showSettingsDialog: () -> Unit,
-    toggleTheme: () -> Unit
+    toggleTheme: () -> Unit,
+    characters: LazyPagingItems<StarWarsCharacter>,
+    favoriteCharacters: Map<String, Boolean>
 ) {
     val navController = rememberNavController()
     val isDarkTheme = remember { mutableStateOf(false) }
@@ -122,7 +131,8 @@ fun DataScreen(
                     if (currentBackStackEntry?.destination?.route == NavigationItem.Characters.route) {
                         IconButton(onClick = { showOnlyFavorites.value = !showOnlyFavorites.value }) {
                             Icon(
-                                imageVector = if (showOnlyFavorites.value) Icons.Default.Star else Icons.Default.Favorite,
+                                imageVector =
+                                if (showOnlyFavorites.value) Icons.Default.Star else Icons.Default.Favorite,
                                 contentDescription = "Toggle Favorites"
                             )
                         }
@@ -152,7 +162,9 @@ fun DataScreen(
             navController = navController,
             paddingValues = paddingValues,
             onFavoriteClick = onFavoriteClick,
-            showOnlyFavorites = showOnlyFavorites
+            showOnlyFavorites = showOnlyFavorites.value,
+            characters = characters,
+            favoriteCharacters = favoriteCharacters
         )
     }
 }
@@ -162,16 +174,23 @@ fun NavigationHost(
     navController: NavHostController,
     paddingValues: PaddingValues,
     onFavoriteClick: (String, Boolean) -> Unit,
-    showOnlyFavorites: MutableState<Boolean>
+    showOnlyFavorites: Boolean,
+    characters: LazyPagingItems<StarWarsCharacter>,
+    favoriteCharacters: Map<String, Boolean>
 ) {
-    NavHost(navController, startDestination = NavigationItem.Characters.route, modifier = Modifier.padding(paddingValues)) {
+    NavHost(
+        navController, startDestination = NavigationItem.Characters.route,
+        modifier = Modifier.padding(paddingValues)
+    ) {
         composable(NavigationItem.Characters.route) {
             CharactersScreen(
-                showOnlyFavorites = showOnlyFavorites.value,
+                showOnlyFavorites = showOnlyFavorites,
                 onCharacterClick = { characterId ->
                     navController.navigate("character_details/$characterId")
                 },
-                onFavoriteClick = onFavoriteClick
+                onFavoriteClick = onFavoriteClick,
+                characters = characters,
+                favoriteCharacters = favoriteCharacters
             )
         }
         composable(NavigationItem.Starships.route) {

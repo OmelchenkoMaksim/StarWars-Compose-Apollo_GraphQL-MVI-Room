@@ -16,6 +16,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class MainViewModel(
@@ -26,7 +27,7 @@ class MainViewModel(
     internal val settingsManager: SettingsManager
 ) : ViewModel() {
     private val _state = MutableStateFlow<MainState>(MainState.Loading)
-    val state: StateFlow<MainState> = _state
+    val state: StateFlow<MainState> = _state.asStateFlow()
 
     private val _selectedCharacter = MutableStateFlow<StarWarsCharacter?>(null)
     val selectedCharacter: StateFlow<StarWarsCharacter?> = _selectedCharacter
@@ -42,14 +43,6 @@ class MainViewModel(
 
     private val _isDarkTheme = MutableStateFlow(settingsManager.isDarkMode())
     val isDarkTheme: StateFlow<Boolean> = _isDarkTheme
-
-    val charactersPager: Flow<PagingData<StarWarsCharacter>> = Pager(
-        config = PagingConfig(
-            pageSize = 10,
-            enablePlaceholders = false
-        ),
-        pagingSourceFactory = { CharacterPagingSource(apolloClient) }
-    ).flow.cachedIn(viewModelScope)
 
     val planetsPager: Flow<PagingData<Planet>> = Pager(
         config = PagingConfig(
@@ -67,8 +60,33 @@ class MainViewModel(
         pagingSourceFactory = { StarshipPagingSource(apolloClient) }
     ).flow.cachedIn(viewModelScope)
 
+    private val _favoriteCharacters = MutableStateFlow<Map<String, Boolean>>(emptyMap())
+    val favoriteCharacters: StateFlow<Map<String, Boolean>> = _favoriteCharacters.asStateFlow()
+
+    val charactersPager: Flow<PagingData<StarWarsCharacter>> = Pager(
+        config = PagingConfig(pageSize = 10, enablePlaceholders = false),
+        pagingSourceFactory = { CharacterPagingSource(apolloClient, favoriteCharacters) }
+    ).flow.cachedIn(viewModelScope)
+
     init {
-        handleIntent(MainIntent.LoadData)
+        viewModelScope.launch {
+            loadFavoriteCharacters()
+            loadData()
+        }
+    }
+
+    fun updateFavoriteStatus(characterId: String, isFavorite: Boolean) {
+        viewModelScope.launch {
+            characterDao.updateFavoriteStatus(characterId, isFavorite)
+            val updatedFavorites = _favoriteCharacters.value.toMutableMap()
+            updatedFavorites[characterId] = isFavorite
+            _favoriteCharacters.value = updatedFavorites
+        }
+    }
+
+    private suspend fun loadFavoriteCharacters() {
+        val favorites = characterDao.getAllCharacters().associate { it.id to it.isFavorite }
+        _favoriteCharacters.value = favorites
     }
 
     fun handleIntent(intent: MainIntent) {
@@ -94,27 +112,10 @@ class MainViewModel(
             val starships = starshipsDeferred.await()
             val planets = planetsDeferred.await()
 
+            Log.i("MainViewModel", "Loaded data - Characters: ${characters.size}, Starships: ${starships.size}, Planets: ${planets.size}")
             _state.value = MainState.DataLoaded(characters, starships, planets)
         } catch (e: Exception) {
             _state.value = MainState.Error(e.message ?: "Unknown Error")
-        }
-    }
-
-    private suspend fun updateFavoriteStatus(characterId: String, isFavorite: Boolean) {
-        try {
-            characterDao.updateFavoriteStatus(characterId, isFavorite)
-            val currentState = _state.value
-            if (currentState is MainState.DataLoaded) {
-                val updatedCharacters = currentState.characters.map {
-                    if (it.id == characterId) it.copy(isFavorite = isFavorite) else it
-                }
-                _state.value = currentState.copy(characters = updatedCharacters)
-                Log.i("MainViewModel", "Character $characterId favorite status updated to $isFavorite")
-            } else {
-                Log.e("MainViewModel", "Failed to update favorite status: Current state is not DataLoaded")
-            }
-        } catch (e: Exception) {
-            Log.e("MainViewModel", "Error updating favorite status: ${e.localizedMessage}")
         }
     }
 
