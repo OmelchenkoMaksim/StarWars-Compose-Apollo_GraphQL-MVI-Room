@@ -12,14 +12,9 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -28,35 +23,14 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.*
 import androidx.compose.material3.MaterialTheme.typography
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -67,17 +41,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.room.Dao
-import androidx.room.Database
-import androidx.room.Entity
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
-import androidx.room.PrimaryKey
-import androidx.room.Query
-import androidx.room.Room
-import androidx.room.RoomDatabase
-import androidx.room.TypeConverter
-import androidx.room.TypeConverters
+import androidx.room.*
 import avelios.starwarsreferenceapp.ui.theme.StarWarsReferenceAppTheme
 import avelios.starwarsreferenceapp.ui.theme.ThemeVariant
 import avelios.starwarsreferenceapp.ui.theme.TypographyVariant
@@ -85,10 +49,7 @@ import com.apollographql.apollo3.ApolloClient
 import com.apollographql.apollo3.api.Optional
 import com.apollographql.apollo3.exception.ApolloException
 import com.apollographql.apollo3.network.okHttpClient
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -120,20 +81,48 @@ class MainActivity : ComponentActivity() {
             val themeVariant = remember { mutableStateOf(savedThemeVariant) }
             val typographyVariant = remember { mutableStateOf(savedTypographyVariant) }
             val isDarkTheme = remember { mutableStateOf(isDarkMode) }
+            val showSettingsDialog = remember { mutableStateOf(false) }
+
+            if (showSettingsDialog.value) {
+                SettingsDialog(
+                    onDismiss = { showSettingsDialog.value = false },
+                    themeVariant = themeVariant,
+                    typographyVariant = typographyVariant
+                ) { newThemeVariant, newTypographyVariant ->
+                    settingsManager.saveThemeVariant(newThemeVariant)
+                    settingsManager.saveTypographyVariant(newTypographyVariant)
+                    themeVariant.value = newThemeVariant
+                    typographyVariant.value = newTypographyVariant
+                }
+            }
 
             StarWarsReferenceAppTheme(
                 themeVariant = themeVariant.value,
                 typographyVariant = typographyVariant.value,
                 darkTheme = isDarkTheme.value
             ) {
-                MainScreen(viewModel = mainViewModel)
+                MainScreen(
+                    viewModel = mainViewModel,
+                    showSettingsDialog = { showSettingsDialog.value = true },
+                    toggleTheme = {
+                        isDarkTheme.value = !isDarkTheme.value
+                        settingsManager.setDarkMode(isDarkTheme.value)
+                        AppCompatDelegate.setDefaultNightMode(
+                            if (isDarkTheme.value) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO
+                        )
+                    }
+                )
             }
         }
     }
 }
 
 @Composable
-fun MainScreen(viewModel: MainViewModel) {
+fun MainScreen(
+    viewModel: MainViewModel,
+    showSettingsDialog: () -> Unit,
+    toggleTheme: () -> Unit
+) {
     val state by viewModel.state.collectAsState()
 
     when (state) {
@@ -142,11 +131,12 @@ fun MainScreen(viewModel: MainViewModel) {
         }
 
         is MainState.DataLoaded -> {
-            val data = state as MainState.DataLoaded
             DataScreen(
                 onFavoriteClick = { id, isFavorite ->
                     viewModel.handleIntent(MainIntent.UpdateFavoriteStatus(id, isFavorite))
-                }
+                },
+                showSettingsDialog = showSettingsDialog,
+                toggleTheme = toggleTheme
             )
         }
 
@@ -252,14 +242,24 @@ fun OutlinedText(text: String) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DataScreen(
-    onFavoriteClick: (String, Boolean) -> Unit
+    onFavoriteClick: (String, Boolean) -> Unit,
+    showSettingsDialog: () -> Unit,
+    toggleTheme: () -> Unit
 ) {
     val navController = rememberNavController()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Star Wars APP") }
+                title = { Text("Star Wars APP") },
+                actions = {
+                    IconButton(onClick = showSettingsDialog) {
+                        Icon(imageVector = Icons.Default.Star, contentDescription = "Settings")
+                    }
+                    IconButton(onClick = toggleTheme) {
+                        Image(painter = painterResource(id = R.drawable.ic_day_night), contentDescription = "Toggle Theme")
+                    }
+                }
             )
         },
         bottomBar = {
@@ -484,15 +484,15 @@ fun CharacterDetailsScreen(characterId: String) {
     } else {
         character?.let { characterDetails: StarWarsCharacter ->
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(text = "Name: ${characterDetails.name}", style = MaterialTheme.typography.bodyLarge)
-                Text(text = "Birth Year: ${characterDetails.birthYear}", style = MaterialTheme.typography.bodyMedium)
-                Text(text = "Eye Color: ${characterDetails.eyeColor}", style = MaterialTheme.typography.bodyMedium)
-                Text(text = "Gender: ${characterDetails.gender}", style = MaterialTheme.typography.bodyMedium)
-                Text(text = "Hair Color: ${characterDetails.hairColor}", style = MaterialTheme.typography.bodyMedium)
-                Text(text = "Height: ${characterDetails.height}", style = MaterialTheme.typography.bodyMedium)
-                Text(text = "Mass: ${characterDetails.mass}", style = MaterialTheme.typography.bodyMedium)
-                Text(text = "Skin Color: ${characterDetails.skinColor}", style = MaterialTheme.typography.bodyMedium)
-                Text(text = "Homeworld: ${characterDetails.homeworld}", style = MaterialTheme.typography.bodyMedium)
+                Text(text = "Name: ${characterDetails.name}", style = typography.bodyLarge)
+                Text(text = "Birth Year: ${characterDetails.birthYear}", style = typography.bodyMedium)
+                Text(text = "Eye Color: ${characterDetails.eyeColor}", style = typography.bodyMedium)
+                Text(text = "Gender: ${characterDetails.gender}", style = typography.bodyMedium)
+                Text(text = "Hair Color: ${characterDetails.hairColor}", style = typography.bodyMedium)
+                Text(text = "Height: ${characterDetails.height}", style = typography.bodyMedium)
+                Text(text = "Mass: ${characterDetails.mass}", style = typography.bodyMedium)
+                Text(text = "Skin Color: ${characterDetails.skinColor}", style = typography.bodyMedium)
+                Text(text = "Homeworld: ${characterDetails.homeworld}", style = typography.bodyMedium)
             }
         }
     }
@@ -513,15 +513,15 @@ fun StarshipDetailsScreen(starshipId: String) {
     } else {
         starship?.let { starshipDetails: Starship ->
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(text = "Name: ${starshipDetails.name}", style = MaterialTheme.typography.bodyLarge)
-                Text(text = "Model: ${starshipDetails.model}", style = MaterialTheme.typography.bodyMedium)
-                Text(text = "Starship Class: ${starshipDetails.starshipClass}", style = MaterialTheme.typography.bodyMedium)
-                Text(text = "Manufacturers: ${starshipDetails.manufacturers.joinToString()}", style = MaterialTheme.typography.bodyMedium)
-                Text(text = "Length: ${starshipDetails.length}", style = MaterialTheme.typography.bodyMedium)
-                Text(text = "Crew: ${starshipDetails.crew}", style = MaterialTheme.typography.bodyMedium)
-                Text(text = "Passengers: ${starshipDetails.passengers}", style = MaterialTheme.typography.bodyMedium)
-                Text(text = "Max Atmosphering Speed: ${starshipDetails.maxAtmospheringSpeed}", style = MaterialTheme.typography.bodyMedium)
-                Text(text = "Hyperdrive Rating: ${starshipDetails.hyperdriveRating}", style = MaterialTheme.typography.bodyMedium)
+                Text(text = "Name: ${starshipDetails.name}", style = typography.bodyLarge)
+                Text(text = "Model: ${starshipDetails.model}", style = typography.bodyMedium)
+                Text(text = "Starship Class: ${starshipDetails.starshipClass}", style = typography.bodyMedium)
+                Text(text = "Manufacturers: ${starshipDetails.manufacturers.joinToString()}", style = typography.bodyMedium)
+                Text(text = "Length: ${starshipDetails.length}", style = typography.bodyMedium)
+                Text(text = "Crew: ${starshipDetails.crew}", style = typography.bodyMedium)
+                Text(text = "Passengers: ${starshipDetails.passengers}", style = typography.bodyMedium)
+                Text(text = "Max Atmosphering Speed: ${starshipDetails.maxAtmospheringSpeed}", style = typography.bodyMedium)
+                Text(text = "Hyperdrive Rating: ${starshipDetails.hyperdriveRating}", style = typography.bodyMedium)
             }
         }
     }
@@ -542,15 +542,15 @@ fun PlanetDetailsScreen(planetId: String) {
     } else {
         planet?.let { planetDetails: Planet ->
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(text = "Name: ${planetDetails.name}", style = MaterialTheme.typography.bodyLarge)
-                Text(text = "Climates: ${planetDetails.climates.joinToString()}", style = MaterialTheme.typography.bodyMedium)
-                Text(text = "Diameter: ${planetDetails.diameter}", style = MaterialTheme.typography.bodyMedium)
-                Text(text = "Rotation Period: ${planetDetails.rotationPeriod}", style = MaterialTheme.typography.bodyMedium)
-                Text(text = "Orbital Period: ${planetDetails.orbitalPeriod}", style = MaterialTheme.typography.bodyMedium)
-                Text(text = "Gravity: ${planetDetails.gravity}", style = MaterialTheme.typography.bodyMedium)
-                Text(text = "Population: ${planetDetails.population}", style = MaterialTheme.typography.bodyMedium)
-                Text(text = "Terrains: ${planetDetails.terrains.joinToString()}", style = MaterialTheme.typography.bodyMedium)
-                Text(text = "Surface Water: ${planetDetails.surfaceWater}", style = MaterialTheme.typography.bodyMedium)
+                Text(text = "Name: ${planetDetails.name}", style = typography.bodyLarge)
+                Text(text = "Climates: ${planetDetails.climates.joinToString()}", style = typography.bodyMedium)
+                Text(text = "Diameter: ${planetDetails.diameter}", style = typography.bodyMedium)
+                Text(text = "Rotation Period: ${planetDetails.rotationPeriod}", style = typography.bodyMedium)
+                Text(text = "Orbital Period: ${planetDetails.orbitalPeriod}", style = typography.bodyMedium)
+                Text(text = "Gravity: ${planetDetails.gravity}", style = typography.bodyMedium)
+                Text(text = "Population: ${planetDetails.population}", style = typography.bodyMedium)
+                Text(text = "Terrains: ${planetDetails.terrains.joinToString()}", style = typography.bodyMedium)
+                Text(text = "Surface Water: ${planetDetails.surfaceWater}", style = typography.bodyMedium)
             }
         }
     }
@@ -823,9 +823,7 @@ sealed class MainIntent {
     data class FetchStarshipDetails(val starshipId: String) : MainIntent()
     data class FetchPlanetDetails(val planetId: String) : MainIntent()
     object LoadMoreCharacters : MainIntent()
-
     object LoadMorePlanets : MainIntent()
-
     object LoadMoreStarships : MainIntent()
 }
 
