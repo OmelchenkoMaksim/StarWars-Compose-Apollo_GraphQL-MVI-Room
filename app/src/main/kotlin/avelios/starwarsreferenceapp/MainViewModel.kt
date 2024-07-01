@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class MainViewModel(
+internal class MainViewModel(
     private val actor: MainActor,
     internal val settingsManager: SettingsManager
 ) : ViewModel() {

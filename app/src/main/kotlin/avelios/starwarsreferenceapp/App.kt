@@ -26,8 +26,9 @@ import org.koin.android.ext.koin.androidLogger
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.core.context.startKoin
 import org.koin.dsl.module
+import timber.log.Timber
 
-class App : Application() {
+internal class App : Application() {
     private lateinit var networkCallback: ConnectivityManager.NetworkCallback
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
@@ -63,11 +64,14 @@ class App : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        // Initialize Koin
         startKoin {
             androidLogger()
             androidContext(this@App)
             modules(appModule)
         }
+        // Initialize Timber
+        Timber.plant(Timber.DebugTree())
         setupNetworkListener()
     }
 
@@ -119,7 +123,7 @@ class App : Application() {
     }
 }
 
-class SettingsManager(private val sharedPreferences: SharedPreferences) {
+internal class SettingsManager(private val sharedPreferences: SharedPreferences) {
 
     fun saveThemeVariant(themeVariant: ThemeVariant) {
         sharedPreferences.edit().putString(THEME_VARIANT, themeVariant.name).apply()

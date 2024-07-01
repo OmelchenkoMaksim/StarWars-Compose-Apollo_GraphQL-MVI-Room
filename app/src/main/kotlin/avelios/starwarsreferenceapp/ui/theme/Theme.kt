@@ -8,7 +8,7 @@ import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
 
 @Composable
-fun StarWarsReferenceAppTheme(
+internal fun StarWarsReferenceAppTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     themeVariant: ThemeVariant = ThemeVariant.MorningMystic,
     typographyVariant: TypographyVariant = TypographyVariant.Classic,
@@ -39,6 +39,6 @@ fun StarWarsReferenceAppTheme(
     )
 }
 
-enum class ThemeVariant {
+internal enum class ThemeVariant {
     MorningMystic, SpringForest, MintOcean, SunMoonlight, AutumnSunset, LavenderMidnight
 }

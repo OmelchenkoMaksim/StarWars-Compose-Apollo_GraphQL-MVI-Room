@@ -3,7 +3,7 @@ package avelios.starwarsreferenceapp.ui.theme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 
-object LightColorPalette {
+internal object LightColorPalette {
     val MorningDew = lightColorScheme(
         primary = LightColors.white,
         primaryContainer = LightColors.ivory,
@@ -65,7 +65,7 @@ object LightColorPalette {
     )
 }
 
-object DarkColorPalette {
+internal object DarkColorPalette {
     val MysticNight = darkColorScheme(
         primary = DarkColors.black,
         primaryContainer = DarkColors.charcoal,

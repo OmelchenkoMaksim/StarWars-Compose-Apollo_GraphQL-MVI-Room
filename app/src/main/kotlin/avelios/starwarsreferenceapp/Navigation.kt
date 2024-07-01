@@ -71,9 +71,10 @@ import avelios.starwarsreferenceapp.NavigationConstants.TOGGLE_THEME
 import avelios.starwarsreferenceapp.ui.theme.ThemeVariant
 import avelios.starwarsreferenceapp.ui.theme.TypographyVariant
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 @Composable
-fun MainScreen(
+internal fun MainScreen(
     viewModel: MainViewModel,
     showSettingsDialog: () -> Unit,
     toggleTheme: () -> Unit
@@ -82,14 +83,19 @@ fun MainScreen(
     val favoriteCharacters by viewModel.favoriteCharacters.collectAsState()
 
     when (state) {
-        is MainState.Loading -> LoadingIndicator()
+        is MainState.Loading -> {
+            Timber.d("Loading state")
+            LoadingIndicator()
+        }
 
         is MainState.DataLoaded -> {
+            Timber.d("DataLoaded state with characters: ${(state as MainState.DataLoaded).characters.size}")
             val characters = viewModel.charactersPager.collectAsLazyPagingItems()
 
             DataScreen(
                 onFavoriteClick = { id, isFavorite ->
                     viewModel.viewModelScope.launch {
+                        Timber.d("Updating favorite status for character ID: $id to $isFavorite")
                         viewModel.updateFavoriteStatus(id, isFavorite)
                     }
                 },
@@ -101,7 +107,9 @@ fun MainScreen(
         }
 
         is MainState.Error -> {
-            Text(text = "Error: ${(state as MainState.Error).message}")
+            val errorMessage = (state as MainState.Error).message
+            Timber.e("Error state with message: $errorMessage")
+            Text(text = "Error: $errorMessage")
         }
     }
 }
@@ -252,7 +260,7 @@ fun rememberToast(): (String) -> Unit {
 }
 
 @Composable
-fun SettingsDialog(
+internal fun SettingsDialog(
     onDismiss: () -> Unit,
     themeVariant: MutableState<ThemeVariant>,
     typographyVariant: MutableState<TypographyVariant>,

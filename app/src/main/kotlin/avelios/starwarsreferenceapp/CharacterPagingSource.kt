@@ -3,8 +3,9 @@ package avelios.starwarsreferenceapp
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import kotlinx.coroutines.flow.StateFlow
+import timber.log.Timber
 
-class CharacterPagingSource(
+internal class CharacterPagingSource(
     private val actor: MainActor,
     private val favoriteCharactersFlow: StateFlow<Map<String, Boolean>>
 ) : PagingSource<String, StarWarsCharacter>() {
@@ -23,6 +24,7 @@ class CharacterPagingSource(
                 nextKey = response.pageInfo.endCursor.takeIf { response.pageInfo.hasNextPage }
             )
         } catch (e: Exception) {
+            Timber.e(e, "Error loading characters")
             LoadResult.Error(e)
         }
     }
@@ -34,7 +36,7 @@ class CharacterPagingSource(
     }
 }
 
-class PlanetPagingSource(
+internal class PlanetPagingSource(
     private val actor: MainActor
 ) : PagingSource<String, Planet>() {
     override suspend fun load(params: LoadParams<String>): LoadResult<String, Planet> {
@@ -47,6 +49,7 @@ class PlanetPagingSource(
                 nextKey = planets.lastOrNull()?.id
             )
         } catch (e: Exception) {
+            Timber.e(e, "Error loading planets")
             LoadResult.Error(e)
         }
     }
@@ -58,7 +61,7 @@ class PlanetPagingSource(
     }
 }
 
-class StarshipPagingSource(
+internal class StarshipPagingSource(
     private val actor: MainActor
 ) : PagingSource<String, Starship>() {
     override suspend fun load(params: LoadParams<String>): LoadResult<String, Starship> {
@@ -71,6 +74,7 @@ class StarshipPagingSource(
                 nextKey = starships.lastOrNull()?.id
             )
         } catch (e: Exception) {
+            Timber.e(e, "Error loading starships")
             LoadResult.Error(e)
         }
     }

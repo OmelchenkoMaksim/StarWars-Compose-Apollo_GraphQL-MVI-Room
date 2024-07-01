@@ -4,8 +4,9 @@ import com.apollographql.apollo3.ApolloClient
 import com.apollographql.apollo3.api.ApolloResponse
 import com.apollographql.apollo3.api.Optional
 import com.apollographql.apollo3.exception.ApolloException
+import timber.log.Timber
 
-sealed class MainState {
+internal sealed class MainState {
     data object Loading : MainState()
     data class DataLoaded(
         val characters: List<StarWarsCharacter> = emptyList(),
@@ -16,7 +17,7 @@ sealed class MainState {
     data class Error(val message: String) : MainState()
 }
 
-sealed class MainIntent {
+internal sealed class MainIntent {
     data object LoadData : MainIntent()
     data class UpdateFavoriteStatus(val characterId: String, val isFavorite: Boolean) : MainIntent()
     data class FetchCharacterDetails(val characterId: String) : MainIntent()
@@ -25,13 +26,13 @@ sealed class MainIntent {
     data object RefreshData : MainIntent()
 }
 
-sealed class MainEffect {
+internal sealed class MainEffect {
     data class ShowToast(val message: String) : MainEffect()
     data class NavigateToDetails(val id: String, val type: String) : MainEffect()
     data class ThemeChanged(val isDarkTheme: Boolean) : MainEffect()
 }
 
-sealed class MainNews {
+internal sealed class MainNews {
     data object DataLoaded : MainNews()
     data object DataRefreshed : MainNews()
     data class ErrorOccurred(val message: String) : MainNews()
@@ -47,7 +48,7 @@ data class PageInfo(
     val hasNextPage: Boolean
 )
 
-class MainActor(
+internal class MainActor(
     private val apolloClient: ApolloClient,
     private val characterDao: CharacterDao,
     private val starshipDao: StarshipDao,
@@ -60,12 +61,17 @@ class MainActor(
             val planets: List<Planet> = planetDao.getAllPlanets()
             MainState.DataLoaded(characters, starships, planets)
         } catch (e: Exception) {
+            Timber.e(e, "Error loading data")
             MainState.Error(e.message ?: "Unknown Error")
         }
     }
 
     suspend fun updateFavoriteStatus(characterId: String, isFavorite: Boolean) {
-        characterDao.updateFavoriteStatus(characterId, isFavorite)
+        try {
+            characterDao.updateFavoriteStatus(characterId, isFavorite)
+        } catch (e: Exception) {
+            Timber.e(e, "Error updating favorite status for characterId: $characterId")
+        }
     }
 
     suspend fun fetchCharacterDetails(characterId: String): StarWarsCharacter? {
@@ -88,6 +94,7 @@ class MainActor(
                 )
             }
         } catch (e: ApolloException) {
+            Timber.e(e, "Error fetching character details for characterId: $characterId")
             null
         }
     }
@@ -97,6 +104,7 @@ class MainActor(
             val characters: List<StarWarsCharacter> = characterDao.getAllCharacters()
             characters.associate { it.id to it.isFavorite }
         } catch (e: Exception) {
+            Timber.e(e, "Error loading favorite characters")
             emptyMap()
         }
     }
@@ -119,6 +127,7 @@ class MainActor(
                 )
             }
         } catch (e: ApolloException) {
+            Timber.e(e, "Error fetching starship details for starshipId: $starshipId")
             null
         }
     }
@@ -141,6 +150,7 @@ class MainActor(
                 )
             }
         } catch (e: ApolloException) {
+            Timber.e(e, "Error fetching planet details for planetId: $planetId")
             null
         }
     }
@@ -180,6 +190,7 @@ class MainActor(
 
             CharactersResponse(characters, pageInfo)
         } catch (e: ApolloException) {
+            Timber.e(e, "Error fetching characters")
             CharactersResponse(emptyList(), PageInfo(null, false))
         }
     }
@@ -211,6 +222,7 @@ class MainActor(
                 }
             } ?: emptyList()
         } catch (e: ApolloException) {
+            Timber.e(e, "Error fetching starships")
             emptyList()
         }
     }
@@ -241,21 +253,26 @@ class MainActor(
                 }
             } ?: emptyList()
         } catch (e: ApolloException) {
+            Timber.e(e, "Error fetching planets")
             emptyList()
         }
     }
 
     suspend fun refreshData() {
-        val charactersResponse: CharactersResponse = fetchCharacters()
-        val starships: List<Starship> = fetchStarships()
-        val planets: List<Planet> = fetchPlanets()
+        try {
+            val charactersResponse: CharactersResponse = fetchCharacters()
+            val starships: List<Starship> = fetchStarships()
+            val planets: List<Planet> = fetchPlanets()
 
-        characterDao.insertCharacters(*charactersResponse.characters.toTypedArray())
-        starshipDao.insertStarships(*starships.toTypedArray())
-        planetDao.insertPlanets(*planets.toTypedArray())
+            characterDao.insertCharacters(*charactersResponse.characters.toTypedArray())
+            starshipDao.insertStarships(*starships.toTypedArray())
+            planetDao.insertPlanets(*planets.toTypedArray())
+        } catch (e: Exception) {
+            Timber.e(e, "Error refreshing data")
+        }
     }
 
-    internal companion object {
+    private companion object {
         const val UNKNOWN = "Unknown"
         const val EMPTY_STRING = ""
         const val ZERO_FLOAT = 0f

@@ -13,7 +13,7 @@ import androidx.room.TypeConverters
 
 @Database(entities = [StarWarsCharacter::class, Starship::class, Planet::class], version = 1, exportSchema = false)
 @TypeConverters(Converters::class)
-abstract class AppDatabase : RoomDatabase() {
+internal abstract class AppDatabase : RoomDatabase() {
     abstract fun characterDao(): CharacterDao
     abstract fun starshipDao(): StarshipDao
     abstract fun planetDao(): PlanetDao

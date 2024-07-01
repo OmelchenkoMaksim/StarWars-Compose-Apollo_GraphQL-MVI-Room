@@ -38,6 +38,7 @@ ksp = "2.0.0-1.0.22"
 koin = "3.5.6"
 coilCompose = "2.6.0"
 moshiKotlin = "1.15.1"
+timberVersion = "5.0.1"
 
 [libraries]
 # Coroutines
@@ -79,6 +80,9 @@ moshi-kotlin = { module = "com.squareup.moshi:moshi-kotlin", version.ref = "mosh
 
 # Image Loading
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose" }
+
+# Logging
+jakewharton-timber = { module = "com.jakewharton.timber:timber", version.ref = "timberVersion" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
