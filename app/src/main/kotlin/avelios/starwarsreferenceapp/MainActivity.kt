@@ -12,21 +12,21 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatDelegate
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Place
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -57,7 +57,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -96,13 +95,14 @@ import okhttp3.logging.HttpLoggingInterceptor
 import org.koin.android.ext.android.inject
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
+import org.koin.androidx.compose.koinViewModel
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.androidx.viewmodel.ext.android.viewModel
 import org.koin.core.context.startKoin
 import org.koin.dsl.module
 
 class MainActivity : ComponentActivity() {
-    private val charactersViewModel: CharactersViewModel by viewModel()
+    private val mainViewModel: MainViewModel by viewModel()
     private val settingsManager: SettingsManager by inject()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -126,82 +126,32 @@ class MainActivity : ComponentActivity() {
                 typographyVariant = typographyVariant.value,
                 darkTheme = isDarkTheme.value
             ) {
-                val characters by charactersViewModel.characters.collectAsState()
-                val starships by charactersViewModel.starships.collectAsState()
-                val planets by charactersViewModel.planets.collectAsState()
-                val isLoading by charactersViewModel.isLoading.collectAsState()
-
-                MainScreen(
-                    characters = characters,
-                    starships = starships,
-                    planets = planets,
-                    isLoading = isLoading,
-                    themeVariant = themeVariant,
-                    typographyVariant = typographyVariant,
-                    isDarkTheme = isDarkTheme,
-                    onSaveSettings = { theme, typography ->
-                        settingsManager.saveThemeVariant(theme)
-                        settingsManager.saveTypographyVariant(typography)
-                        settingsManager.setDarkMode(isDarkTheme.value)
-                    },
-                    charactersViewModel = charactersViewModel
-                )
+                MainScreen(viewModel = mainViewModel)
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen(
-    characters: List<StarWarsCharacter>,
-    starships: List<Starship>,
-    planets: List<Planet>,
-    isLoading: Boolean,
-    themeVariant: MutableState<ThemeVariant>,
-    typographyVariant: MutableState<TypographyVariant>,
-    isDarkTheme: MutableState<Boolean>,
-    onSaveSettings: (ThemeVariant, TypographyVariant) -> Unit,
-    charactersViewModel: CharactersViewModel
-) {
-    val navController = rememberNavController()
-    var showSettingsDialog by remember { mutableStateOf(false) }
+fun MainScreen(viewModel: MainViewModel) {
+    val state by viewModel.state.collectAsState()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Star Wars") },
-                actions = {
-                    IconButton(onClick = {
-                        isDarkTheme.value = !isDarkTheme.value
-                        onSaveSettings(themeVariant.value, typographyVariant.value)
-                    }) {
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_day_night),
-                            contentDescription = "Toggle Theme"
-                        )
-                    }
-                    IconButton(onClick = { showSettingsDialog = true }) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings")
-                    }
+    when (state) {
+        is MainState.Loading -> {
+            CircularProgressIndicator()
+        }
+
+        is MainState.DataLoaded -> {
+            val data = state as MainState.DataLoaded
+            DataScreen(
+                onFavoriteClick = { id, isFavorite ->
+                    viewModel.handleIntent(MainIntent.UpdateFavoriteStatus(id, isFavorite))
                 }
-            )
-        },
-        bottomBar = { BottomNavigationBar(navController) }
-    ) { paddingValues: PaddingValues ->
-        Box(modifier = Modifier.padding(paddingValues)) {
-            NavigationGraph(
-                navController, characters, starships, planets, isLoading, charactersViewModel
             )
         }
 
-        if (showSettingsDialog) {
-            SettingsDialog(
-                onDismiss = { showSettingsDialog = false },
-                themeVariant = themeVariant,
-                typographyVariant = typographyVariant,
-                onSaveSettings = onSaveSettings
-            )
+        is MainState.Error -> {
+            Text(text = "Error: ${(state as MainState.Error).message}")
         }
     }
 }
@@ -299,6 +249,88 @@ fun OutlinedText(text: String) {
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DataScreen(
+    onFavoriteClick: (String, Boolean) -> Unit
+) {
+    val navController = rememberNavController()
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Star Wars APP") }
+            )
+        },
+        bottomBar = {
+            BottomNavigationBar(navController)
+        }
+    ) { paddingValues ->
+        NavHost(navController, startDestination = NavigationItem.Characters.route, modifier = Modifier.padding(paddingValues)) {
+            composable(NavigationItem.Characters.route) {
+                val viewModel: MainViewModel = koinViewModel()
+                val state by viewModel.state.collectAsState()
+                if (state is MainState.DataLoaded) {
+                    CharactersScreen(
+                        characters = (state as MainState.DataLoaded).characters,
+                        isLoading = false,
+                        onCharacterClick = { characterId ->
+                            navController.navigate("character_details/$characterId")
+                        },
+                        onFavoriteClick = onFavoriteClick
+                    )
+                } else {
+                    CircularProgressIndicator()
+                }
+            }
+            composable(NavigationItem.Starships.route) {
+                val viewModel: MainViewModel = koinViewModel()
+                val state by viewModel.state.collectAsState()
+                if (state is MainState.DataLoaded) {
+                    StarshipsScreen(
+                        starships = (state as MainState.DataLoaded).starships,
+                        isLoading = false,
+                        onStarshipClick = { starshipId ->
+                            navController.navigate("starship_details/$starshipId")
+                        },
+                        onLoadMore = { viewModel.handleIntent(MainIntent.LoadMoreStarships) }
+                    )
+                } else {
+                    CircularProgressIndicator()
+                }
+            }
+            composable(NavigationItem.Planets.route) {
+                val viewModel: MainViewModel = koinViewModel()
+                val state by viewModel.state.collectAsState()
+                if (state is MainState.DataLoaded) {
+                    PlanetsScreen(
+                        planets = (state as MainState.DataLoaded).planets,
+                        isLoading = false,
+                        onPlanetClick = { planetId ->
+                            navController.navigate("planet_details/$planetId")
+                        },
+                        onLoadMore = { viewModel.handleIntent(MainIntent.LoadMorePlanets) }
+                    )
+                } else {
+                    CircularProgressIndicator()
+                }
+            }
+            composable("character_details/{characterId}") { backStackEntry ->
+                val characterId = backStackEntry.arguments?.getString("characterId") ?: return@composable
+                CharacterDetailsScreen(characterId = characterId)
+            }
+            composable("starship_details/{starshipId}") { backStackEntry ->
+                val starshipId = backStackEntry.arguments?.getString("starshipId") ?: return@composable
+                StarshipDetailsScreen(starshipId = starshipId)
+            }
+            composable("planet_details/{planetId}") { backStackEntry ->
+                val planetId = backStackEntry.arguments?.getString("planetId") ?: return@composable
+                PlanetDetailsScreen(planetId = planetId)
+            }
+        }
+    }
+}
+
 @Composable
 fun BottomNavigationBar(navController: NavHostController) {
     val items = listOf(
@@ -306,84 +338,23 @@ fun BottomNavigationBar(navController: NavHostController) {
         NavigationItem.Starships,
         NavigationItem.Planets
     )
-    NavigationBar(
-        containerColor = MaterialTheme.colorScheme.primary,
-        contentColor = MaterialTheme.colorScheme.onPrimary
-    ) {
+    NavigationBar {
         val currentRoute = currentRoute(navController)
-        items.forEach { item: NavigationItem ->
+        items.forEach { item ->
             NavigationBarItem(
                 icon = { Icon(item.icon, contentDescription = item.title) },
                 label = { Text(item.title) },
                 selected = currentRoute == item.route,
                 onClick = {
-                    if (currentRoute != item.route) {
-                        navController.navigate(item.route) {
-                            popUpTo(navController.graph.startDestinationId) {
-                                saveState = true
-                            }
-                            launchSingleTop = true
-                            restoreState = true
+                    navController.navigate(item.route) {
+                        popUpTo(navController.graph.startDestinationId) {
+                            saveState = true
                         }
+                        launchSingleTop = true
+                        restoreState = true
                     }
                 }
             )
-        }
-    }
-}
-
-@Composable
-fun NavigationGraph(
-    navController: NavHostController,
-    characters: List<StarWarsCharacter>,
-    starships: List<Starship>,
-    planets: List<Planet>,
-    isLoading: Boolean,
-    charactersViewModel: CharactersViewModel,
-    modifier: Modifier = Modifier
-) {
-    NavHost(navController, startDestination = NavigationItem.Characters.route, modifier = modifier) {
-        composable(NavigationItem.Characters.route) {
-            CharactersScreen(
-                characters = characters,
-                isLoading = isLoading,
-                viewModel = charactersViewModel,
-                onCharacterClick = { characterId ->
-                    navController.navigate("character_details/$characterId")
-                }
-            )
-        }
-        composable(NavigationItem.Starships.route) {
-            StarshipsScreen(
-                starships = starships,
-                isLoading = isLoading,
-                viewModel = charactersViewModel,
-                onStarshipClick = { starshipId ->
-                    navController.navigate("starship_details/$starshipId")
-                }
-            )
-        }
-        composable(NavigationItem.Planets.route) {
-            PlanetsScreen(
-                planets = planets,
-                isLoading = isLoading,
-                viewModel = charactersViewModel,
-                onPlanetClick = { planetId ->
-                    navController.navigate("planet_details/$planetId")
-                }
-            )
-        }
-        composable("character_details/{characterId}") { backStackEntry ->
-            val characterId = backStackEntry.arguments?.getString("characterId") ?: return@composable
-            CharacterDetailsScreen(viewModel = charactersViewModel, characterId = characterId)
-        }
-        composable("starship_details/{starshipId}") { backStackEntry ->
-            val starshipId = backStackEntry.arguments?.getString("starshipId") ?: return@composable
-            StarshipDetailsScreen(viewModel = charactersViewModel, starshipId = starshipId)
-        }
-        composable("planet_details/{planetId}") { backStackEntry ->
-            val planetId = backStackEntry.arguments?.getString("planetId") ?: return@composable
-            PlanetDetailsScreen(viewModel = charactersViewModel, planetId = planetId)
         }
     }
 }
@@ -398,26 +369,28 @@ fun currentRoute(navController: NavHostController): String? {
 fun CharactersScreen(
     characters: List<StarWarsCharacter>,
     isLoading: Boolean,
-    viewModel: CharactersViewModel,
-    modifier: Modifier = Modifier,
-    onCharacterClick: (String) -> Unit
+    onCharacterClick: (String) -> Unit,
+    onFavoriteClick: (String, Boolean) -> Unit
 ) {
     val listState = rememberLazyListState()
+    var showFavorites by remember { mutableStateOf(false) }
 
-    LaunchedEffect(listState) {
-        snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
-            .filter { it != null && it >= characters.size - 1 }
-            .distinctUntilChanged()
-            .collect {
-                viewModel.loadMoreCharacters()
+    Column(modifier = Modifier.padding(16.dp)) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(text = "Characters", style = typography.bodyLarge)
+            Button(onClick = { showFavorites = !showFavorites }) {
+                Text(
+                    text = if (showFavorites) "Show All" else "Show Favorites",
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
             }
-    }
-
-    Column(modifier = modifier.padding(16.dp)) {
-        Text(text = "Characters", style = typography.bodyLarge)
+        }
+        val displayCharacters = if (showFavorites) characters.filter { it.isFavorite } else characters
         LazyColumn(state = listState) {
-            items(characters) { character: StarWarsCharacter ->
-                CharacterItem(character = character, onClick = { onCharacterClick(character.id) })
+            items(displayCharacters) { character: StarWarsCharacter ->
+                CharacterItem(character = character, onClick = { onCharacterClick(character.id) }) {
+                    onFavoriteClick(character.id, !character.isFavorite)
+                }
             }
             item {
                 if (isLoading) {
@@ -432,9 +405,9 @@ fun CharactersScreen(
 fun StarshipsScreen(
     starships: List<Starship>,
     isLoading: Boolean,
-    viewModel: CharactersViewModel,
-    modifier: Modifier = Modifier,
-    onStarshipClick: (String) -> Unit
+    onStarshipClick: (String) -> Unit,
+    onLoadMore: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
 
@@ -443,7 +416,7 @@ fun StarshipsScreen(
             .filter { it != null && it >= starships.size - 1 }
             .distinctUntilChanged()
             .collect {
-                viewModel.loadMoreStarships()
+                onLoadMore()
             }
     }
 
@@ -466,9 +439,9 @@ fun StarshipsScreen(
 fun PlanetsScreen(
     planets: List<Planet>,
     isLoading: Boolean,
-    viewModel: CharactersViewModel,
-    modifier: Modifier = Modifier,
-    onPlanetClick: (String) -> Unit
+    onPlanetClick: (String) -> Unit,
+    onLoadMore: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
 
@@ -477,7 +450,7 @@ fun PlanetsScreen(
             .filter { it != null && it >= planets.size - 1 }
             .distinctUntilChanged()
             .collect {
-                viewModel.loadMorePlanets()
+                onLoadMore()
             }
     }
 
@@ -497,12 +470,13 @@ fun PlanetsScreen(
 }
 
 @Composable
-fun CharacterDetailsScreen(viewModel: CharactersViewModel, characterId: String) {
+fun CharacterDetailsScreen(characterId: String) {
+    val viewModel: MainViewModel = koinViewModel()
     val character by viewModel.selectedCharacter.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
     LaunchedEffect(characterId) {
-        viewModel.fetchCharacterDetails(characterId)
+        viewModel.handleIntent(MainIntent.FetchCharacterDetails(characterId))
     }
 
     if (isLoading) {
@@ -511,26 +485,27 @@ fun CharacterDetailsScreen(viewModel: CharactersViewModel, characterId: String) 
         character?.let { characterDetails: StarWarsCharacter ->
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(text = "Name: ${characterDetails.name}", style = MaterialTheme.typography.bodyLarge)
-                Text(text = "Birth Year: ${characterDetails.birthYear}", style = typography.bodyMedium)
-                Text(text = "Eye Color: ${characterDetails.eyeColor}", style = typography.bodyMedium)
-                Text(text = "Gender: ${characterDetails.gender}", style = typography.bodyMedium)
-                Text(text = "Hair Color: ${characterDetails.hairColor}", style = typography.bodyMedium)
-                Text(text = "Height: ${characterDetails.height}", style = typography.bodyMedium)
-                Text(text = "Mass: ${characterDetails.mass}", style = typography.bodyMedium)
-                Text(text = "Skin Color: ${characterDetails.skinColor}", style = typography.bodyMedium)
-                Text(text = "Homeworld: ${characterDetails.homeworld}", style = typography.bodyMedium)
+                Text(text = "Birth Year: ${characterDetails.birthYear}", style = MaterialTheme.typography.bodyMedium)
+                Text(text = "Eye Color: ${characterDetails.eyeColor}", style = MaterialTheme.typography.bodyMedium)
+                Text(text = "Gender: ${characterDetails.gender}", style = MaterialTheme.typography.bodyMedium)
+                Text(text = "Hair Color: ${characterDetails.hairColor}", style = MaterialTheme.typography.bodyMedium)
+                Text(text = "Height: ${characterDetails.height}", style = MaterialTheme.typography.bodyMedium)
+                Text(text = "Mass: ${characterDetails.mass}", style = MaterialTheme.typography.bodyMedium)
+                Text(text = "Skin Color: ${characterDetails.skinColor}", style = MaterialTheme.typography.bodyMedium)
+                Text(text = "Homeworld: ${characterDetails.homeworld}", style = MaterialTheme.typography.bodyMedium)
             }
         }
     }
 }
 
 @Composable
-fun StarshipDetailsScreen(viewModel: CharactersViewModel, starshipId: String) {
+fun StarshipDetailsScreen(starshipId: String) {
+    val viewModel: MainViewModel = koinViewModel()
     val starship by viewModel.selectedStarship.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
     LaunchedEffect(starshipId) {
-        viewModel.fetchStarshipDetails(starshipId)
+        viewModel.handleIntent(MainIntent.FetchStarshipDetails(starshipId))
     }
 
     if (isLoading) {
@@ -539,26 +514,27 @@ fun StarshipDetailsScreen(viewModel: CharactersViewModel, starshipId: String) {
         starship?.let { starshipDetails: Starship ->
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(text = "Name: ${starshipDetails.name}", style = MaterialTheme.typography.bodyLarge)
-                Text(text = "Model: ${starshipDetails.model}", style = typography.bodyMedium)
-                Text(text = "Starship Class: ${starshipDetails.starshipClass}", style = typography.bodyMedium)
-                Text(text = "Manufacturers: ${starshipDetails.manufacturers.joinToString()}", style = typography.bodyMedium)
-                Text(text = "Length: ${starshipDetails.length}", style = typography.bodyMedium)
-                Text(text = "Crew: ${starshipDetails.crew}", style = typography.bodyMedium)
-                Text(text = "Passengers: ${starshipDetails.passengers}", style = typography.bodyMedium)
-                Text(text = "Max Atmosphering Speed: ${starshipDetails.maxAtmospheringSpeed}", style = typography.bodyMedium)
-                Text(text = "Hyperdrive Rating: ${starshipDetails.hyperdriveRating}", style = typography.bodyMedium)
+                Text(text = "Model: ${starshipDetails.model}", style = MaterialTheme.typography.bodyMedium)
+                Text(text = "Starship Class: ${starshipDetails.starshipClass}", style = MaterialTheme.typography.bodyMedium)
+                Text(text = "Manufacturers: ${starshipDetails.manufacturers.joinToString()}", style = MaterialTheme.typography.bodyMedium)
+                Text(text = "Length: ${starshipDetails.length}", style = MaterialTheme.typography.bodyMedium)
+                Text(text = "Crew: ${starshipDetails.crew}", style = MaterialTheme.typography.bodyMedium)
+                Text(text = "Passengers: ${starshipDetails.passengers}", style = MaterialTheme.typography.bodyMedium)
+                Text(text = "Max Atmosphering Speed: ${starshipDetails.maxAtmospheringSpeed}", style = MaterialTheme.typography.bodyMedium)
+                Text(text = "Hyperdrive Rating: ${starshipDetails.hyperdriveRating}", style = MaterialTheme.typography.bodyMedium)
             }
         }
     }
 }
 
 @Composable
-fun PlanetDetailsScreen(viewModel: CharactersViewModel, planetId: String) {
+fun PlanetDetailsScreen(planetId: String) {
+    val viewModel: MainViewModel = koinViewModel()
     val planet by viewModel.selectedPlanet.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
     LaunchedEffect(planetId) {
-        viewModel.fetchPlanetDetails(planetId)
+        viewModel.handleIntent(MainIntent.FetchPlanetDetails(planetId))
     }
 
     if (isLoading) {
@@ -567,24 +543,38 @@ fun PlanetDetailsScreen(viewModel: CharactersViewModel, planetId: String) {
         planet?.let { planetDetails: Planet ->
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(text = "Name: ${planetDetails.name}", style = MaterialTheme.typography.bodyLarge)
-                Text(text = "Climates: ${planetDetails.climates.joinToString()}", style = typography.bodyMedium)
-                Text(text = "Diameter: ${planetDetails.diameter}", style = typography.bodyMedium)
-                Text(text = "Rotation Period: ${planetDetails.rotationPeriod}", style = typography.bodyMedium)
-                Text(text = "Orbital Period: ${planetDetails.orbitalPeriod}", style = typography.bodyMedium)
-                Text(text = "Gravity: ${planetDetails.gravity}", style = typography.bodyMedium)
-                Text(text = "Population: ${planetDetails.population}", style = typography.bodyMedium)
-                Text(text = "Terrains: ${planetDetails.terrains.joinToString()}", style = typography.bodyMedium)
-                Text(text = "Surface Water: ${planetDetails.surfaceWater}", style = typography.bodyMedium)
+                Text(text = "Climates: ${planetDetails.climates.joinToString()}", style = MaterialTheme.typography.bodyMedium)
+                Text(text = "Diameter: ${planetDetails.diameter}", style = MaterialTheme.typography.bodyMedium)
+                Text(text = "Rotation Period: ${planetDetails.rotationPeriod}", style = MaterialTheme.typography.bodyMedium)
+                Text(text = "Orbital Period: ${planetDetails.orbitalPeriod}", style = MaterialTheme.typography.bodyMedium)
+                Text(text = "Gravity: ${planetDetails.gravity}", style = MaterialTheme.typography.bodyMedium)
+                Text(text = "Population: ${planetDetails.population}", style = MaterialTheme.typography.bodyMedium)
+                Text(text = "Terrains: ${planetDetails.terrains.joinToString()}", style = MaterialTheme.typography.bodyMedium)
+                Text(text = "Surface Water: ${planetDetails.surfaceWater}", style = MaterialTheme.typography.bodyMedium)
             }
         }
     }
 }
 
 @Composable
-fun CharacterItem(character: StarWarsCharacter, onClick: () -> Unit) {
-    Column(modifier = Modifier.padding(vertical = 8.dp).clickable(onClick = onClick)) {
-        Text(text = "Name: ${character.name}", style = typography.bodyMedium)
-        Text(text = "Films Count: ${character.filmsCount}", style = typography.bodyLarge)
+fun CharacterItem(character: StarWarsCharacter, onClick: () -> Unit, onFavoriteClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .padding(vertical = 8.dp)
+            .clickable(onClick = onClick)
+            .fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Column {
+            Text(text = "Name: ${character.name}", style = typography.bodyMedium)
+            Text(text = "Films Count: ${character.filmsCount}", style = typography.bodyLarge)
+        }
+        IconButton(onClick = onFavoriteClick) {
+            Icon(
+                imageVector = if (character.isFavorite) Icons.Default.Favorite else Icons.Default.Star,
+                contentDescription = if (character.isFavorite) "Remove from favorites" else "Add to favorites"
+            )
+        }
     }
 }
 
@@ -620,7 +610,8 @@ data class StarWarsCharacter(
     val height: Int,
     val mass: Double,
     val skinColor: String,
-    val homeworld: String?
+    val homeworld: String?,
+    var isFavorite: Boolean = false
 )
 
 @Entity(tableName = "starships")
@@ -658,6 +649,9 @@ interface CharacterDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCharacters(vararg characters: StarWarsCharacter)
+
+    @Query("UPDATE characters SET isFavorite = :isFavorite WHERE id = :id")
+    suspend fun updateFavoriteStatus(id: String, isFavorite: Boolean)
 }
 
 @Dao
@@ -702,7 +696,7 @@ class App : Application() {
     private lateinit var networkCallback: ConnectivityManager.NetworkCallback
 
     private val appModule = module {
-        viewModel { CharactersViewModel(get(), get(), get(), get()) }
+        viewModel { MainViewModel(get(), get(), get(), get()) }
         single {
             Room.databaseBuilder(get(), AppDatabase::class.java, DATABASE_NAME).build()
         }
@@ -746,13 +740,13 @@ class App : Application() {
 
     private fun setupNetworkListener() {
         val connectivityManager: ConnectivityManager by inject()
-        val charactersViewModel: CharactersViewModel by inject()
+        val mainViewModel: MainViewModel by inject()
 
         networkCallback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
                 Toast.makeText(this@App, TOAST_INTERNET_AVAILABLE, Toast.LENGTH_SHORT).show()
-                if (charactersViewModel.areListsEmpty()) {
-                    charactersViewModel.refreshData()
+                if (mainViewModel.areListsEmpty()) {
+                    mainViewModel.refreshData()
                 }
             }
 
@@ -811,20 +805,38 @@ class SettingsManager(private val sharedPreferences: SharedPreferences) {
     }
 }
 
-class CharactersViewModel(
+sealed class MainState {
+    object Loading : MainState()
+    data class DataLoaded(
+        val characters: List<StarWarsCharacter>,
+        val starships: List<Starship>,
+        val planets: List<Planet>
+    ) : MainState()
+
+    data class Error(val message: String) : MainState()
+}
+
+sealed class MainIntent {
+    object LoadData : MainIntent()
+    data class UpdateFavoriteStatus(val characterId: String, val isFavorite: Boolean) : MainIntent()
+    data class FetchCharacterDetails(val characterId: String) : MainIntent()
+    data class FetchStarshipDetails(val starshipId: String) : MainIntent()
+    data class FetchPlanetDetails(val planetId: String) : MainIntent()
+    object LoadMoreCharacters : MainIntent()
+
+    object LoadMorePlanets : MainIntent()
+
+    object LoadMoreStarships : MainIntent()
+}
+
+class MainViewModel(
     private val apolloClient: ApolloClient,
     private val characterDao: CharacterDao,
     private val starshipDao: StarshipDao,
     private val planetDao: PlanetDao
 ) : ViewModel() {
-    private val _characters = MutableStateFlow<List<StarWarsCharacter>>(emptyList())
-    val characters: StateFlow<List<StarWarsCharacter>> = _characters
-
-    private val _starships = MutableStateFlow<List<Starship>>(emptyList())
-    val starships: StateFlow<List<Starship>> = _starships
-
-    private val _planets = MutableStateFlow<List<Planet>>(emptyList())
-    val planets: StateFlow<List<Planet>> = _planets
+    private val _state = MutableStateFlow<MainState>(MainState.Loading)
+    val state: StateFlow<MainState> = _state
 
     private var charactersEndCursor: String? = null
     private var charactersHasNextPage: Boolean = true
@@ -848,121 +860,104 @@ class CharactersViewModel(
     val isLoading: StateFlow<Boolean> = _isLoading
 
     init {
+        handleIntent(MainIntent.LoadData)
+    }
+
+    fun handleIntent(intent: MainIntent) {
         viewModelScope.launch {
-            fetchCharacters()
-            fetchStarships()
-            fetchPlanets()
+            when (intent) {
+                is MainIntent.LoadData -> loadData()
+                is MainIntent.UpdateFavoriteStatus -> updateFavoriteStatus(intent.characterId, intent.isFavorite)
+                is MainIntent.FetchCharacterDetails -> fetchCharacterDetails(intent.characterId)
+                is MainIntent.FetchStarshipDetails -> fetchStarshipDetails(intent.starshipId)
+                is MainIntent.FetchPlanetDetails -> fetchPlanetDetails(intent.planetId)
+                is MainIntent.LoadMoreCharacters -> loadMoreCharacters()
+                is MainIntent.LoadMoreStarships -> loadMoreStarships()
+                is MainIntent.LoadMorePlanets -> loadMorePlanets()
+            }
         }
     }
 
-    fun fetchCharacterDetails(characterId: String) {
-        viewModelScope.launch {
-            _isLoading.value = true
-            val response = try {
-                apolloClient.query(GetCharacterDetailsQuery(characterId)).execute()
-            } catch (e: ApolloException) {
-                println("ApolloException: $e")
-                _isLoading.value = false
-                return@launch
-            }
+    private suspend fun loadData() {
+        _state.value = MainState.Loading
+        try {
+            val characters = fetchCharacters()
+            val starships = fetchStarships()
+            val planets = fetchPlanets()
+            _state.value = MainState.DataLoaded(characters, starships, planets)
+        } catch (e: Exception) {
+            _state.value = MainState.Error(e.message ?: "Unknown Error")
+        }
+    }
 
-            response.data?.person?.let { person: GetCharacterDetailsQuery.Person ->
-                _selectedCharacter.value = StarWarsCharacter(
-                    id = person.id,
-                    name = person.name,
-                    birthYear = person.birthYear ?: "Unknown",
-                    eyeColor = person.eyeColor ?: "Unknown",
-                    gender = person.gender ?: "Unknown",
-                    hairColor = person.hairColor ?: "Unknown",
-                    height = person.height ?: 0,
-                    mass = person.mass ?: 0.0,
-                    homeworld = person.homeworld?.name ?: "Unknown",
-                    filmsCount = person.filmConnection?.totalCount ?: 0,
-                    skinColor = person.skinColor ?: "Unknown"
-                )
+    private suspend fun updateFavoriteStatus(characterId: String, isFavorite: Boolean) {
+        characterDao.updateFavoriteStatus(characterId, isFavorite)
+        val currentState = _state.value
+        if (currentState is MainState.DataLoaded) {
+            val updatedCharacters = currentState.characters.map {
+                if (it.id == characterId) it.copy(isFavorite = isFavorite) else it
             }
+            _state.value = currentState.copy(characters = updatedCharacters)
+        }
+    }
+
+    private suspend fun fetchCharacterDetails(characterId: String) {
+        _isLoading.value = true
+        try {
+            val character = fetchCharacterDetailsFromServer(characterId)
+            _selectedCharacter.value = character
+        } catch (e: Exception) {
+            _state.value = MainState.Error(e.message ?: "Unknown Error")
+        } finally {
             _isLoading.value = false
         }
     }
 
-    fun fetchStarshipDetails(starshipId: String) {
-        viewModelScope.launch {
-            _isLoading.value = true
-            val response = try {
-                apolloClient.query(GetStarshipDetailsQuery(starshipId)).execute()
-            } catch (e: ApolloException) {
-                println("ApolloException: $e")
-                _isLoading.value = false
-                return@launch
-            }
-
-            response.data?.starship?.let { starship: GetStarshipDetailsQuery.Starship ->
-                _selectedStarship.value = Starship(
-                    id = starship.id,
-                    name = starship.name,
-                    model = starship.model ?: "",
-                    starshipClass = starship.starshipClass ?: "",
-                    manufacturers = starship.manufacturers?.filterNotNull() ?: emptyList(),
-                    length = starship.length?.toFloat() ?: 0f,
-                    crew = starship.crew ?: "",
-                    passengers = starship.passengers ?: "",
-                    maxAtmospheringSpeed = starship.maxAtmospheringSpeed ?: 0,
-                    hyperdriveRating = starship.hyperdriveRating?.toFloat() ?: 0f,
-                )
-            }
+    private suspend fun fetchStarshipDetails(starshipId: String) {
+        _isLoading.value = true
+        try {
+            val starship = fetchStarshipDetailsFromServer(starshipId)
+            _selectedStarship.value = starship
+        } catch (e: Exception) {
+            _state.value = MainState.Error(e.message ?: "Unknown Error")
+        } finally {
             _isLoading.value = false
         }
     }
 
-    fun fetchPlanetDetails(planetId: String) {
-        viewModelScope.launch {
-            _isLoading.value = true
-            val response = try {
-                apolloClient.query(GetPlanetDetailsQuery(planetId)).execute()
-            } catch (e: ApolloException) {
-                println("ApolloException: $e")
-                _isLoading.value = false
-                return@launch
-            }
-
-            response.data?.planet?.let { planet: GetPlanetDetailsQuery.Planet ->
-                _selectedPlanet.value = Planet(
-                    id = planet.id,
-                    name = planet.name,
-                    climates = planet.climates?.filterNotNull() ?: emptyList(),
-                    diameter = planet.diameter ?: 0,
-                    rotationPeriod = planet.rotationPeriod ?: 0,
-                    orbitalPeriod = planet.orbitalPeriod ?: 0,
-                    gravity = planet.gravity ?: "Unknown",
-                    population = planet.population ?: 0.0,
-                    terrains = planet.terrains?.filterNotNull() ?: emptyList(),
-                    surfaceWater = planet.surfaceWater ?: 0.0
-                )
-            }
+    private suspend fun fetchPlanetDetails(planetId: String) {
+        _isLoading.value = true
+        try {
+            val planet = fetchPlanetDetailsFromServer(planetId)
+            _selectedPlanet.value = planet
+        } catch (e: Exception) {
+            _state.value = MainState.Error(e.message ?: "Unknown Error")
+        } finally {
             _isLoading.value = false
         }
     }
 
     fun areListsEmpty(): Boolean {
-        return _characters.value.isEmpty() || _starships.value.isEmpty() || _planets.value.isEmpty()
+        val currentState = _state.value
+        return if (currentState is MainState.DataLoaded) {
+            currentState.characters.isEmpty() || currentState.starships.isEmpty() || currentState.planets.isEmpty()
+        } else {
+            true
+        }
     }
 
     fun refreshData() {
         viewModelScope.launch {
-            fetchCharacters()
-            fetchStarships()
-            fetchPlanets()
+            loadData()
         }
     }
 
-    private suspend fun fetchCharacters() {
-        _isLoading.value = true
+    private suspend fun fetchCharacters(): List<StarWarsCharacter> {
         val charactersList = getCharactersFromServer() ?: characterDao.getAllCharacters()
-        _characters.value = charactersList
         if (charactersList.isNotEmpty()) {
             characterDao.insertCharacters(*charactersList.toTypedArray())
         }
-        _isLoading.value = false
+        return charactersList
     }
 
     private suspend fun getCharactersFromServer(after: String? = null, first: Int = 10): List<StarWarsCharacter>? {
@@ -999,21 +994,24 @@ class CharactersViewModel(
 
     suspend fun loadMoreCharacters() {
         if (charactersHasNextPage) {
-            _isLoading.value = true
-            val moreCharacters = getCharactersFromServer(charactersEndCursor)
-            _characters.value += moreCharacters ?: emptyList()
-            _isLoading.value = false
+            try {
+                val moreCharacters = getCharactersFromServer(charactersEndCursor)
+                val currentState = _state.value
+                if (currentState is MainState.DataLoaded) {
+                    _state.value = currentState.copy(characters = currentState.characters + (moreCharacters ?: emptyList()))
+                }
+            } catch (e: Exception) {
+                _state.value = MainState.Error(e.message ?: "Unknown Error")
+            }
         }
     }
 
-    private suspend fun fetchStarships() {
-        _isLoading.value = true
+    private suspend fun fetchStarships(): List<Starship> {
         val starshipsList = getStarshipsFromServer() ?: starshipDao.getAllStarships()
-        _starships.value = starshipsList
         if (starshipsList.isNotEmpty()) {
             starshipDao.insertStarships(*starshipsList.toTypedArray())
         }
-        _isLoading.value = false
+        return starshipsList
     }
 
     private suspend fun getStarshipsFromServer(after: String? = null, first: Int = 10): List<Starship>? {
@@ -1049,21 +1047,24 @@ class CharactersViewModel(
 
     suspend fun loadMoreStarships() {
         if (starshipsHasNextPage) {
-            _isLoading.value = true
-            val moreStarships = getStarshipsFromServer(starshipsEndCursor)
-            _starships.value += moreStarships ?: emptyList()
-            _isLoading.value = false
+            try {
+                val moreStarships = getStarshipsFromServer(starshipsEndCursor)
+                val currentState = _state.value
+                if (currentState is MainState.DataLoaded) {
+                    _state.value = currentState.copy(starships = currentState.starships + (moreStarships ?: emptyList()))
+                }
+            } catch (e: Exception) {
+                _state.value = MainState.Error(e.message ?: "Unknown Error")
+            }
         }
     }
 
-    private suspend fun fetchPlanets() {
-        _isLoading.value = true
+    private suspend fun fetchPlanets(): List<Planet> {
         val planetsList = getPlanetsFromServer() ?: planetDao.getAllPlanets()
-        _planets.value = planetsList
         if (planetsList.isNotEmpty()) {
             planetDao.insertPlanets(*planetsList.toTypedArray())
         }
-        _isLoading.value = false
+        return planetsList
     }
 
     private suspend fun getPlanetsFromServer(after: String? = null, first: Int = 10): List<Planet>? {
@@ -1075,7 +1076,7 @@ class CharactersViewModel(
         }
 
         val newPlanets = response.data?.allPlanets?.edges?.mapNotNull { edge ->
-            edge?.node?.let { planet: GetPlanetsQuery.Node ->
+            edge?.node?.let { planet ->
                 Planet(
                     id = planet.id,
                     name = planet.name,
@@ -1099,10 +1100,88 @@ class CharactersViewModel(
 
     suspend fun loadMorePlanets() {
         if (planetsHasNextPage) {
-            _isLoading.value = true
-            val morePlanets = getPlanetsFromServer(planetsEndCursor)
-            _planets.value += morePlanets ?: emptyList()
-            _isLoading.value = false
+            try {
+                val morePlanets = getPlanetsFromServer(planetsEndCursor)
+                val currentState = _state.value
+                if (currentState is MainState.DataLoaded) {
+                    _state.value = currentState.copy(planets = currentState.planets + (morePlanets ?: emptyList()))
+                }
+            } catch (e: Exception) {
+                _state.value = MainState.Error(e.message ?: "Unknown Error")
+            }
+        }
+    }
+
+    private suspend fun fetchCharacterDetailsFromServer(characterId: String): StarWarsCharacter? {
+        val response = try {
+            apolloClient.query(GetCharacterDetailsQuery(characterId)).execute()
+        } catch (e: ApolloException) {
+            println("ApolloException: $e")
+            return null
+        }
+
+        return response.data?.person?.let { person ->
+            StarWarsCharacter(
+                id = person.id,
+                name = person.name,
+                birthYear = person.birthYear ?: "Unknown",
+                eyeColor = person.eyeColor ?: "Unknown",
+                gender = person.gender ?: "Unknown",
+                hairColor = person.hairColor ?: "Unknown",
+                height = person.height ?: 0,
+                mass = person.mass ?: 0.0,
+                homeworld = person.homeworld?.name ?: "Unknown",
+                filmsCount = person.filmConnection?.totalCount ?: 0,
+                skinColor = person.skinColor ?: "Unknown"
+            )
+        }
+    }
+
+    private suspend fun fetchStarshipDetailsFromServer(starshipId: String): Starship? {
+        val response = try {
+            apolloClient.query(GetStarshipDetailsQuery(starshipId)).execute()
+        } catch (e: ApolloException) {
+            println("ApolloException: $e")
+            return null
+        }
+
+        return response.data?.starship?.let { starship ->
+            Starship(
+                id = starship.id,
+                name = starship.name,
+                model = starship.model ?: "",
+                starshipClass = starship.starshipClass ?: "",
+                manufacturers = starship.manufacturers?.filterNotNull() ?: emptyList(),
+                length = starship.length?.toFloat() ?: 0f,
+                crew = starship.crew ?: "",
+                passengers = starship.passengers ?: "",
+                maxAtmospheringSpeed = starship.maxAtmospheringSpeed ?: 0,
+                hyperdriveRating = starship.hyperdriveRating?.toFloat() ?: 0f
+            )
+        }
+    }
+
+    private suspend fun fetchPlanetDetailsFromServer(planetId: String): Planet? {
+        val response = try {
+            apolloClient.query(GetPlanetDetailsQuery(planetId)).execute()
+        } catch (e: ApolloException) {
+            println("ApolloException: $e")
+            return null
+        }
+
+        return response.data?.planet?.let { planet ->
+            Planet(
+                id = planet.id,
+                name = planet.name,
+                climates = planet.climates?.mapNotNull { it } ?: emptyList(),
+                diameter = planet.diameter ?: 0,
+                rotationPeriod = planet.rotationPeriod ?: 0,
+                orbitalPeriod = planet.orbitalPeriod ?: 0,
+                gravity = planet.gravity ?: "Unknown",
+                population = planet.population ?: 0.0,
+                terrains = planet.terrains?.mapNotNull { it } ?: emptyList(),
+                surfaceWater = planet.surfaceWater ?: 0.0
+            )
         }
     }
 }

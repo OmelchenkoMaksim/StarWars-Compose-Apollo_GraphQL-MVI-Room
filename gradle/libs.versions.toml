@@ -31,7 +31,7 @@ composeNavigation = "2.7.7"
 activityCompose = "1.9.0"
 lifecycleRuntimeKtx = "2.8.2"
 apolloRuntime = "3.8.4"
-loggingInterceptor = "4.9.1"
+loggingInterceptor = "4.10.0"
 roomRuntime = "2.6.1"
 pagingRuntime = "3.3.0"
 ksp = "2.0.0-1.0.22"
@@ -66,6 +66,7 @@ androidx-paging-runtime = { group = "androidx.paging", name = "paging-runtime", 
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
 koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin" }
 koin-android-compat = { module = "io.insert-koin:koin-android-compat", version.ref = "koin" }
+koin-androidx-compose = { module = "io.insert-koin:koin-androidx-compose", version.ref = "koin" }
 
 # Apollo
 apollo-runtime = { group = "com.apollographql.apollo3", name = "apollo-runtime", version.ref = "apolloRuntime" }
