@@ -1,5 +1,15 @@
 package avelios.starwarsreferenceapp
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColor
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -8,8 +18,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
@@ -28,6 +40,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
@@ -53,7 +69,7 @@ fun CharactersScreen(
         if (filteredItems.isEmpty()) {
             Text(
                 text = if (showOnlyFavorites) "No favorites found" else "No characters found",
-                modifier = Modifier.align(Alignment.TopCenter).padding(8.dp),
+                modifier = Modifier.align(Alignment.TopCenter).padding(12.dp),
                 style = MaterialTheme.typography.bodyLarge
             )
         } else {
@@ -71,15 +87,11 @@ fun CharactersScreen(
         lazyPagingItems.apply {
             when {
                 loadState.refresh is LoadState.Loading -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    LoadingIndicator()
                 }
 
                 loadState.append is LoadState.Loading -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
-                    )
+                    LoadingIndicator()
                 }
 
                 loadState.refresh is LoadState.Error -> {
@@ -116,11 +128,11 @@ fun StarshipsScreen(
         lazyPagingItems.apply {
             when {
                 loadState.refresh is LoadState.Loading -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    LoadingIndicator()
                 }
 
                 loadState.append is LoadState.Loading -> {
-                    CircularProgressIndicator(modifier = Modifier.fillMaxWidth().padding(16.dp))
+                    LoadingIndicator()
                 }
 
                 loadState.refresh is LoadState.Error -> {
@@ -157,11 +169,11 @@ fun PlanetsScreen(
         lazyPagingItems.apply {
             when {
                 loadState.refresh is LoadState.Loading -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    LoadingIndicator()
                 }
 
                 loadState.append is LoadState.Loading -> {
-                    CircularProgressIndicator(modifier = Modifier.fillMaxWidth().padding(16.dp))
+                    LoadingIndicator()
                 }
 
                 loadState.refresh is LoadState.Error -> {
@@ -189,21 +201,27 @@ fun CharacterDetailsScreen(characterId: String) {
     }
 
     if (isLoading) {
-        CircularProgressIndicator()
+        LoadingIndicator()
     } else {
         character?.let { characterDetails: StarWarsCharacter ->
             Card(
-                shape = RoundedCornerShape(8.dp),
+                shape = RoundedCornerShape(12.dp),
                 elevation = CardDefaults.cardElevation(4.dp),
-                modifier = Modifier.padding(8.dp)
+                modifier = Modifier.padding(12.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
                         text = "Name: ${characterDetails.name}",
-                        style = MaterialTheme.typography.bodyLarge,
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            shadow = Shadow(
+                                color = MaterialTheme.colorScheme.onBackground,
+                                offset = Offset(2f, 2f),
+                                blurRadius = 2f
+                            )
+                        ),
                         color = MaterialTheme.colorScheme.primary
                     )
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
                     Text(text = "Birth Year: ${characterDetails.birthYear}", style = MaterialTheme.typography.bodyMedium)
                     Text(text = "Eye Color: ${characterDetails.eyeColor}", style = MaterialTheme.typography.bodyMedium)
                     Text(text = "Gender: ${characterDetails.gender}", style = MaterialTheme.typography.bodyMedium)
@@ -229,13 +247,13 @@ fun StarshipDetailsScreen(starshipId: String) {
     }
 
     if (isLoading) {
-        CircularProgressIndicator()
+        LoadingIndicator()
     } else {
         starship?.let { starshipDetails: Starship ->
             Card(
-                shape = RoundedCornerShape(8.dp),
+                shape = RoundedCornerShape(12.dp),
                 elevation = CardDefaults.cardElevation(4.dp),
-                modifier = Modifier.padding(8.dp)
+                modifier = Modifier.padding(12.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
@@ -243,7 +261,7 @@ fun StarshipDetailsScreen(starshipId: String) {
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.primary
                     )
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
                     Text(text = "Model: ${starshipDetails.model}", style = MaterialTheme.typography.bodyMedium)
                     Text(text = "Starship Class: ${starshipDetails.starshipClass}", style = MaterialTheme.typography.bodyMedium)
                     Text(text = "Manufacturers: ${starshipDetails.manufacturers.joinToString()}", style = MaterialTheme.typography.bodyMedium)
@@ -269,13 +287,13 @@ fun PlanetDetailsScreen(planetId: String) {
     }
 
     if (isLoading) {
-        CircularProgressIndicator()
+        LoadingIndicator()
     } else {
         planet?.let { planetDetails: Planet ->
             Card(
-                shape = RoundedCornerShape(8.dp),
+                shape = RoundedCornerShape(12.dp),
                 elevation = CardDefaults.cardElevation(4.dp),
-                modifier = Modifier.padding(8.dp)
+                modifier = Modifier.padding(12.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
@@ -283,7 +301,7 @@ fun PlanetDetailsScreen(planetId: String) {
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.primary
                     )
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
                     Text(text = "Climates: ${planetDetails.climates.joinToString()}", style = MaterialTheme.typography.bodyMedium)
                     Text(text = "Diameter: ${planetDetails.diameter}", style = MaterialTheme.typography.bodyMedium)
                     Text(text = "Rotation Period: ${planetDetails.rotationPeriod}", style = MaterialTheme.typography.bodyMedium)
@@ -303,7 +321,7 @@ fun CharacterItem(character: StarWarsCharacter, onClick: () -> Unit, onFavoriteC
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp)
+            .padding(12.dp)
             .clickable(onClick = onClick),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
@@ -323,14 +341,54 @@ fun CharacterItem(character: StarWarsCharacter, onClick: () -> Unit, onFavoriteC
 
 @Composable
 fun StarshipItem(starship: Starship, onClick: () -> Unit) {
-    Column(modifier = Modifier.padding(8.dp).clickable(onClick = onClick)) {
+    Column(modifier = Modifier.padding(12.dp).clickable(onClick = onClick)) {
         Text(text = "Starship: ${starship.name}", style = MaterialTheme.typography.bodyMedium)
     }
 }
 
 @Composable
 fun PlanetItem(planet: Planet, onClick: () -> Unit) {
-    Column(modifier = Modifier.padding(8.dp).clickable(onClick = onClick)) {
+    Column(modifier = Modifier.padding(12.dp).clickable(onClick = onClick)) {
         Text(text = "Planet: ${planet.name}", style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+@Composable
+fun LoadingIndicator(
+    modifier: Modifier = Modifier,
+    size: Dp = 50.dp,
+    strokeWidth: Dp = 4.dp
+) {
+    val rainbowColors = listOf(Color.Red, Color.Yellow, Color.Green, Color.Blue, Color.Cyan, Color.Magenta)
+    val infiniteTransition = rememberInfiniteTransition()
+    val color by infiniteTransition.animateColor(
+        initialValue = rainbowColors.first(),
+        targetValue = rainbowColors.last(),
+        animationSpec = infiniteRepeatable(tween(400), repeatMode = RepeatMode.Reverse), label = ""
+    )
+
+    AnimatedVisibility(
+        visible = true,
+        enter = fadeIn(animationSpec = tween(500)),
+        exit = fadeOut(animationSpec = tween(500))
+    ) {
+        Box(
+            modifier = modifier
+                .background(Color.White.copy(alpha = 0.6f))
+                .fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(
+                color = color,
+                strokeWidth = strokeWidth,
+                modifier = Modifier
+                    .size(size)
+                    .border(
+                        width = 2.dp,
+                        color = color,
+                        shape = CircleShape
+                    )
+            )
+        }
     }
 }

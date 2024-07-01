@@ -3,6 +3,7 @@ package avelios.starwarsreferenceapp
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -147,42 +148,57 @@ fun DataScreen(
             BottomNavigationBar(navController)
         }
     ) { paddingValues ->
-        NavHost(navController, startDestination = NavigationItem.Characters.route, modifier = Modifier.padding(paddingValues)) {
-            composable(NavigationItem.Characters.route) {
-                CharactersScreen(
-                    showOnlyFavorites = showOnlyFavorites.value,
-                    onCharacterClick = { characterId ->
-                        navController.navigate("character_details/$characterId")
-                    },
-                    onFavoriteClick = onFavoriteClick
-                )
-            }
-            composable(NavigationItem.Starships.route) {
-                StarshipsScreen(
-                    onStarshipClick = { starshipId ->
-                        navController.navigate("starship_details/$starshipId")
-                    }
-                )
-            }
-            composable(NavigationItem.Planets.route) {
-                PlanetsScreen(
-                    onPlanetClick = { planetId ->
-                        navController.navigate("planet_details/$planetId")
-                    }
-                )
-            }
-            composable("character_details/{characterId}") { backStackEntry ->
-                val characterId = backStackEntry.arguments?.getString("characterId") ?: return@composable
-                CharacterDetailsScreen(characterId = characterId)
-            }
-            composable("starship_details/{starshipId}") { backStackEntry ->
-                val starshipId = backStackEntry.arguments?.getString("starshipId") ?: return@composable
-                StarshipDetailsScreen(starshipId = starshipId)
-            }
-            composable("planet_details/{planetId}") { backStackEntry ->
-                val planetId = backStackEntry.arguments?.getString("planetId") ?: return@composable
-                PlanetDetailsScreen(planetId = planetId)
-            }
+        NavigationHost(
+            navController = navController,
+            paddingValues = paddingValues,
+            onFavoriteClick = onFavoriteClick,
+            showOnlyFavorites = showOnlyFavorites
+        )
+    }
+}
+
+@Composable
+fun NavigationHost(
+    navController: NavHostController,
+    paddingValues: PaddingValues,
+    onFavoriteClick: (String, Boolean) -> Unit,
+    showOnlyFavorites: MutableState<Boolean>
+) {
+    NavHost(navController, startDestination = NavigationItem.Characters.route, modifier = Modifier.padding(paddingValues)) {
+        composable(NavigationItem.Characters.route) {
+            CharactersScreen(
+                showOnlyFavorites = showOnlyFavorites.value,
+                onCharacterClick = { characterId ->
+                    navController.navigate("character_details/$characterId")
+                },
+                onFavoriteClick = onFavoriteClick
+            )
+        }
+        composable(NavigationItem.Starships.route) {
+            StarshipsScreen(
+                onStarshipClick = { starshipId ->
+                    navController.navigate("starship_details/$starshipId")
+                }
+            )
+        }
+        composable(NavigationItem.Planets.route) {
+            PlanetsScreen(
+                onPlanetClick = { planetId ->
+                    navController.navigate("planet_details/$planetId")
+                }
+            )
+        }
+        composable("character_details/{characterId}") { backStackEntry ->
+            val characterId = backStackEntry.arguments?.getString("characterId") ?: return@composable
+            CharacterDetailsScreen(characterId = characterId)
+        }
+        composable("starship_details/{starshipId}") { backStackEntry ->
+            val starshipId = backStackEntry.arguments?.getString("starshipId") ?: return@composable
+            StarshipDetailsScreen(starshipId = starshipId)
+        }
+        composable("planet_details/{planetId}") { backStackEntry ->
+            val planetId = backStackEntry.arguments?.getString("planetId") ?: return@composable
+            PlanetDetailsScreen(planetId = planetId)
         }
     }
 }
@@ -288,7 +304,7 @@ fun OutlinedText(text: String) {
             )
         ),
         modifier = Modifier
-            .padding(8.dp)
+            .padding(12.dp)
     )
 }
 
@@ -307,10 +323,9 @@ fun BottomNavigationBar(navController: NavHostController) {
                 label = { Text(item.title) },
                 selected = currentRoute == item.route,
                 onClick = {
+                    navController.popBackStack(navController.graph.startDestinationId, false)
                     navController.navigate(item.route) {
-                        popUpTo(navController.graph.startDestinationId) {
-                            saveState = true
-                        }
+                        popUpTo(navController.graph.startDestinationId) { saveState = true }
                         launchSingleTop = true
                         restoreState = true
                     }
