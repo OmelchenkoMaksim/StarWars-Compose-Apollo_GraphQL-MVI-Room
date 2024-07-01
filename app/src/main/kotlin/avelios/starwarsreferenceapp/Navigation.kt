@@ -55,16 +55,22 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import avelios.starwarsreferenceapp.NavigationConstants.APP_TITLE
 import avelios.starwarsreferenceapp.NavigationConstants.BACK
 import avelios.starwarsreferenceapp.NavigationConstants.CHARACTER_DETAILS_ROUTE
+import avelios.starwarsreferenceapp.NavigationConstants.CHARACTER_DETAILS_SLASH
+import avelios.starwarsreferenceapp.NavigationConstants.CHARACTER_ID_KEY
 import avelios.starwarsreferenceapp.NavigationConstants.CHARACTER_TITLE
 import avelios.starwarsreferenceapp.NavigationConstants.DARK_MODE_ENABLED
 import avelios.starwarsreferenceapp.NavigationConstants.LIGHT_MODE_ENABLED
 import avelios.starwarsreferenceapp.NavigationConstants.OK
 import avelios.starwarsreferenceapp.NavigationConstants.PLANET_DETAILS_ROUTE
+import avelios.starwarsreferenceapp.NavigationConstants.PLANET_DETAILS_SLASH
+import avelios.starwarsreferenceapp.NavigationConstants.PLANET_ID_KEY
 import avelios.starwarsreferenceapp.NavigationConstants.PLANET_TITLE
 import avelios.starwarsreferenceapp.NavigationConstants.SELECT_THEME
 import avelios.starwarsreferenceapp.NavigationConstants.SELECT_TYPOGRAPHY
 import avelios.starwarsreferenceapp.NavigationConstants.SETTINGS
 import avelios.starwarsreferenceapp.NavigationConstants.STARSHIP_DETAILS_ROUTE
+import avelios.starwarsreferenceapp.NavigationConstants.STARSHIP_DETAILS_SLASH
+import avelios.starwarsreferenceapp.NavigationConstants.STARSHIP_ID_KEY
 import avelios.starwarsreferenceapp.NavigationConstants.STARSHIP_TITLE
 import avelios.starwarsreferenceapp.NavigationConstants.TOGGLE_FAVORITES
 import avelios.starwarsreferenceapp.NavigationConstants.TOGGLE_THEME
@@ -164,9 +170,9 @@ fun DataScreen(
                     }
                     IconButton(onClick = {
                         toggleTheme()
+                        isDarkTheme.value = !isDarkTheme.value
                         val toastMessage = if (isDarkTheme.value) DARK_MODE_ENABLED else LIGHT_MODE_ENABLED
                         showToast(toastMessage)
-                        isDarkTheme.value = !isDarkTheme.value
                     }) {
                         Image(
                             painter = painterResource(id = R.drawable.ic_day_night),
@@ -211,7 +217,7 @@ fun NavigationHost(
             CharactersScreen(
                 showOnlyFavorites = showOnlyFavorites,
                 onCharacterClick = { characterId ->
-                    navController.navigate("character_details/$characterId")
+                    navController.navigate("$CHARACTER_DETAILS_SLASH$characterId")
                 },
                 onFavoriteClick = onFavoriteClick,
                 characters = characters,
@@ -221,27 +227,27 @@ fun NavigationHost(
         composable(NavigationItem.Starships.route) {
             StarshipsScreen(
                 onStarshipClick = { starshipId ->
-                    navController.navigate("starship_details/$starshipId")
+                    navController.navigate("$STARSHIP_DETAILS_SLASH$starshipId")
                 }
             )
         }
         composable(NavigationItem.Planets.route) {
             PlanetsScreen(
                 onPlanetClick = { planetId ->
-                    navController.navigate("planet_details/$planetId")
+                    navController.navigate("$PLANET_DETAILS_SLASH$planetId")
                 }
             )
         }
         composable(CHARACTER_DETAILS_ROUTE) { backStackEntry ->
-            val characterId = backStackEntry.arguments?.getString("characterId") ?: return@composable
+            val characterId = backStackEntry.arguments?.getString(CHARACTER_ID_KEY) ?: return@composable
             CharacterDetailsScreen(characterId = characterId)
         }
         composable(STARSHIP_DETAILS_ROUTE) { backStackEntry ->
-            val starshipId = backStackEntry.arguments?.getString("starshipId") ?: return@composable
+            val starshipId = backStackEntry.arguments?.getString(STARSHIP_ID_KEY) ?: return@composable
             StarshipDetailsScreen(starshipId = starshipId)
         }
         composable(PLANET_DETAILS_ROUTE) { backStackEntry ->
-            val planetId = backStackEntry.arguments?.getString("planetId") ?: return@composable
+            val planetId = backStackEntry.arguments?.getString(PLANET_ID_KEY) ?: return@composable
             PlanetDetailsScreen(planetId = planetId)
         }
     }
@@ -404,6 +410,11 @@ object NavigationConstants {
     const val CHARACTER_DETAILS_ROUTE = "character_details/{characterId}"
     const val STARSHIP_DETAILS_ROUTE = "starship_details/{starshipId}"
     const val PLANET_DETAILS_ROUTE = "planet_details/{planetId}"
+
+    const val CHARACTER_DETAILS_SLASH = "character_details/"
+    const val STARSHIP_DETAILS_SLASH = "starship_details/"
+    const val PLANET_DETAILS_SLASH = "planet_details/"
+
     const val APP_TITLE = "Star Wars APP"
     const val CHARACTER_TITLE = "Character"
     const val STARSHIP_TITLE = "Starship"
@@ -418,4 +429,8 @@ object NavigationConstants {
     const val SELECT_THEME = "Select Theme"
     const val SELECT_TYPOGRAPHY = "Select Typography"
     const val OK = "OK"
+
+    const val CHARACTER_ID_KEY = "characterId"
+    const val STARSHIP_ID_KEY = "starshipId"
+    const val PLANET_ID_KEY = "planetId"
 }
