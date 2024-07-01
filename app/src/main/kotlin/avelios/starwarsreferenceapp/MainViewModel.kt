@@ -81,12 +81,22 @@ internal class MainViewModel(
     private suspend fun loadData() {
         _isLoading.value = true
         try {
-            _state.value = actor.loadData()
+            val data = actor.loadData()
+            _state.value = data as MainState.DataLoaded
             _news.emit(MainNews.DataLoaded)
         } catch (e: Exception) {
             _news.emit(MainNews.ErrorOccurred(e.message ?: "Unknown error occurred"))
         } finally {
             _isLoading.value = false
+        }
+    }
+
+    private suspend fun loadFavoriteCharacters() {
+        try {
+            val favorites = actor.loadFavoriteCharacters()
+            _favoriteCharacters.value = favorites
+        } catch (e: Exception) {
+            _news.emit(MainNews.ErrorOccurred("Failed to load favorite characters"))
         }
     }
 
@@ -138,15 +148,6 @@ internal class MainViewModel(
             _news.emit(MainNews.ErrorOccurred("Failed to fetch planet details"))
         } finally {
             _isLoading.value = false
-        }
-    }
-
-    private suspend fun loadFavoriteCharacters() {
-        try {
-            val favorites = actor.loadFavoriteCharacters()
-            _favoriteCharacters.value = favorites
-        } catch (e: Exception) {
-            _news.emit(MainNews.ErrorOccurred("Failed to load favorite characters"))
         }
     }
 

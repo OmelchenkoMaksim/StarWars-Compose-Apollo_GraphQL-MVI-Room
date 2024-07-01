@@ -33,8 +33,6 @@ internal class App : Application() {
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     private val appModule = module {
-        single { MainActor(get(), get(), get(), get()) }
-        viewModel { MainViewModel(get(), get()) }
         single {
             Room.databaseBuilder(get(), AppDatabase::class.java, ROOM_NAME).build()
         }
@@ -60,17 +58,21 @@ internal class App : Application() {
         }
         single { provideSharedPreferences(androidContext()) }
         single { SettingsManager(get()) }
+
+        single { StarWarsRepository(get(), get(), get(), get()) }
+
+        single { MainActor(get()) }
+
+        viewModel { MainViewModel(get(), get()) }
     }
 
     override fun onCreate() {
         super.onCreate()
-        // Initialize Koin
         startKoin {
             androidLogger()
             androidContext(this@App)
             modules(appModule)
         }
-        // Initialize Timber
         Timber.plant(Timber.DebugTree())
         setupNetworkListener()
     }

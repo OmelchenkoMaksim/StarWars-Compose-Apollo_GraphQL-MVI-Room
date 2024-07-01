@@ -337,16 +337,17 @@ fun LoadingIndicator(
 ) {
     val rainbowColors = listOf(Color.Red, Color.Yellow, Color.Green, Color.Blue, Color.Cyan, Color.Magenta)
     val infiniteTransition = rememberInfiniteTransition(label = "")
+    val tweenAnimationDuration = 500
     val color by infiniteTransition.animateColor(
         initialValue = rainbowColors.first(),
         targetValue = rainbowColors.last(),
-        animationSpec = infiniteRepeatable(tween(400), repeatMode = RepeatMode.Reverse), label = ""
+        animationSpec = infiniteRepeatable(tween(tweenAnimationDuration), repeatMode = RepeatMode.Reverse), label = ""
     )
 
     AnimatedVisibility(
         visible = true,
-        enter = fadeIn(animationSpec = tween(500)),
-        exit = fadeOut(animationSpec = tween(500))
+        enter = fadeIn(animationSpec = tween(tweenAnimationDuration)),
+        exit = fadeOut(animationSpec = tween(tweenAnimationDuration))
     ) {
         Box(
             modifier = modifier
