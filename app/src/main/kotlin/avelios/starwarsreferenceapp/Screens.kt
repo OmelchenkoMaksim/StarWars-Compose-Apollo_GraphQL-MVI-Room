@@ -32,6 +32,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -182,7 +183,7 @@ fun CharacterDetailsScreen(characterId: String) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
                         text = "Name: ${characterDetails.name}",
-                        style = MaterialTheme.typography.bodyLarge.copy(
+                        style = typography.bodyLarge.copy(
                             shadow = Shadow(
                                 color = MaterialTheme.colorScheme.onBackground,
                                 offset = Offset(2f, 2f),
@@ -192,14 +193,14 @@ fun CharacterDetailsScreen(characterId: String) {
                         color = MaterialTheme.colorScheme.primary
                     )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-                    Text(text = "Birth Year: ${characterDetails.birthYear}", style = MaterialTheme.typography.bodyMedium)
-                    Text(text = "Eye Color: ${characterDetails.eyeColor}", style = MaterialTheme.typography.bodyMedium)
-                    Text(text = "Gender: ${characterDetails.gender}", style = MaterialTheme.typography.bodyMedium)
-                    Text(text = "Hair Color: ${characterDetails.hairColor}", style = MaterialTheme.typography.bodyMedium)
-                    Text(text = "Height: ${characterDetails.height}", style = MaterialTheme.typography.bodyMedium)
-                    Text(text = "Mass: ${characterDetails.mass}", style = MaterialTheme.typography.bodyMedium)
-                    Text(text = "Skin Color: ${characterDetails.skinColor}", style = MaterialTheme.typography.bodyMedium)
-                    Text(text = "Homeworld: ${characterDetails.homeworld}", style = MaterialTheme.typography.bodyMedium)
+                    Text(text = "Birth Year: ${characterDetails.birthYear}", style = typography.bodyMedium)
+                    Text(text = "Eye Color: ${characterDetails.eyeColor}", style = typography.bodyMedium)
+                    Text(text = "Gender: ${characterDetails.gender}", style = typography.bodyMedium)
+                    Text(text = "Hair Color: ${characterDetails.hairColor}", style = typography.bodyMedium)
+                    Text(text = "Height: ${characterDetails.height}", style = typography.bodyMedium)
+                    Text(text = "Mass: ${characterDetails.mass}", style = typography.bodyMedium)
+                    Text(text = "Skin Color: ${characterDetails.skinColor}", style = typography.bodyMedium)
+                    Text(text = "Homeworld: ${characterDetails.homeworld}", style = typography.bodyMedium)
                 }
             }
         }
@@ -228,18 +229,18 @@ fun StarshipDetailsScreen(starshipId: String) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
                         text = "Name: ${starshipDetails.name}",
-                        style = MaterialTheme.typography.bodyLarge,
+                        style = typography.bodyLarge,
                         color = MaterialTheme.colorScheme.primary
                     )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-                    Text(text = "Model: ${starshipDetails.model}", style = MaterialTheme.typography.bodyMedium)
-                    Text(text = "Starship Class: ${starshipDetails.starshipClass}", style = MaterialTheme.typography.bodyMedium)
-                    Text(text = "Manufacturers: ${starshipDetails.manufacturers.joinToString()}", style = MaterialTheme.typography.bodyMedium)
-                    Text(text = "Length: ${starshipDetails.length}", style = MaterialTheme.typography.bodyMedium)
-                    Text(text = "Crew: ${starshipDetails.crew}", style = MaterialTheme.typography.bodyMedium)
-                    Text(text = "Passengers: ${starshipDetails.passengers}", style = MaterialTheme.typography.bodyMedium)
-                    Text(text = "Max Atmosphering Speed: ${starshipDetails.maxAtmospheringSpeed}", style = MaterialTheme.typography.bodyMedium)
-                    Text(text = "Hyperdrive Rating: ${starshipDetails.hyperdriveRating}", style = MaterialTheme.typography.bodyMedium)
+                    Text(text = "Model: ${starshipDetails.model}", style = typography.bodyMedium)
+                    Text(text = "Starship Class: ${starshipDetails.starshipClass}", style = typography.bodyMedium)
+                    Text(text = "Manufacturers: ${starshipDetails.manufacturers.joinToString()}", style = typography.bodyMedium)
+                    Text(text = "Length: ${starshipDetails.length}", style = typography.bodyMedium)
+                    Text(text = "Crew: ${starshipDetails.crew}", style = typography.bodyMedium)
+                    Text(text = "Passengers: ${starshipDetails.passengers}", style = typography.bodyMedium)
+                    Text(text = "Max Atmosphering Speed: ${starshipDetails.maxAtmospheringSpeed}", style = typography.bodyMedium)
+                    Text(text = "Hyperdrive Rating: ${starshipDetails.hyperdriveRating}", style = typography.bodyMedium)
                 }
             }
         }
@@ -268,18 +269,18 @@ fun PlanetDetailsScreen(planetId: String) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
                         text = "Name: ${planetDetails.name}",
-                        style = MaterialTheme.typography.bodyLarge,
+                        style = typography.bodyLarge,
                         color = MaterialTheme.colorScheme.primary
                     )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-                    Text(text = "Climates: ${planetDetails.climates.joinToString()}", style = MaterialTheme.typography.bodyMedium)
-                    Text(text = "Diameter: ${planetDetails.diameter}", style = MaterialTheme.typography.bodyMedium)
-                    Text(text = "Rotation Period: ${planetDetails.rotationPeriod}", style = MaterialTheme.typography.bodyMedium)
-                    Text(text = "Orbital Period: ${planetDetails.orbitalPeriod}", style = MaterialTheme.typography.bodyMedium)
-                    Text(text = "Gravity: ${planetDetails.gravity}", style = MaterialTheme.typography.bodyMedium)
-                    Text(text = "Population: ${planetDetails.population}", style = MaterialTheme.typography.bodyMedium)
-                    Text(text = "Terrains: ${planetDetails.terrains.joinToString()}", style = MaterialTheme.typography.bodyMedium)
-                    Text(text = "Surface Water: ${planetDetails.surfaceWater}", style = MaterialTheme.typography.bodyMedium)
+                    Text(text = "Climates: ${planetDetails.climates.joinToString()}", style = typography.bodyMedium)
+                    Text(text = "Diameter: ${planetDetails.diameter}", style = typography.bodyMedium)
+                    Text(text = "Rotation Period: ${planetDetails.rotationPeriod}", style = typography.bodyMedium)
+                    Text(text = "Orbital Period: ${planetDetails.orbitalPeriod}", style = typography.bodyMedium)
+                    Text(text = "Gravity: ${planetDetails.gravity}", style = typography.bodyMedium)
+                    Text(text = "Population: ${planetDetails.population}", style = typography.bodyMedium)
+                    Text(text = "Terrains: ${planetDetails.terrains.joinToString()}", style = typography.bodyMedium)
+                    Text(text = "Surface Water: ${planetDetails.surfaceWater}", style = typography.bodyMedium)
                 }
             }
         }
@@ -302,8 +303,8 @@ fun CharacterItem(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column {
-            Text(text = "Name: ${character.name}", style = MaterialTheme.typography.bodyMedium)
-            Text(text = "Films Count: ${character.filmsCount}", style = MaterialTheme.typography.bodyLarge)
+            Text(text = "Name: ${character.name}", style = typography.bodyMedium)
+            Text(text = "Films Count: ${character.filmsCount}", style = typography.bodyLarge)
         }
         IconButton(onClick = onFavoriteClick) {
             Icon(
@@ -317,14 +318,14 @@ fun CharacterItem(
 @Composable
 fun StarshipItem(starship: Starship, onClick: () -> Unit) {
     Column(modifier = Modifier.padding(12.dp).clickable(onClick = onClick)) {
-        Text(text = "Starship: ${starship.name}", style = MaterialTheme.typography.bodyMedium)
+        Text(text = "Starship: ${starship.name}", style = typography.bodyMedium)
     }
 }
 
 @Composable
 fun PlanetItem(planet: Planet, onClick: () -> Unit) {
     Column(modifier = Modifier.padding(12.dp).clickable(onClick = onClick)) {
-        Text(text = "Planet: ${planet.name}", style = MaterialTheme.typography.bodyMedium)
+        Text(text = "Planet: ${planet.name}", style = typography.bodyMedium)
     }
 }
 
@@ -335,7 +336,7 @@ fun LoadingIndicator(
     strokeWidth: Dp = 4.dp
 ) {
     val rainbowColors = listOf(Color.Red, Color.Yellow, Color.Green, Color.Blue, Color.Cyan, Color.Magenta)
-    val infiniteTransition = rememberInfiniteTransition()
+    val infiniteTransition = rememberInfiniteTransition(label = "")
     val color by infiniteTransition.animateColor(
         initialValue = rainbowColors.first(),
         targetValue = rainbowColors.last(),

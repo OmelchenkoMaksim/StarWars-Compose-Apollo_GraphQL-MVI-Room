@@ -16,7 +16,6 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -45,6 +44,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -52,8 +52,25 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
+import avelios.starwarsreferenceapp.NavigationConstants.APP_TITLE
+import avelios.starwarsreferenceapp.NavigationConstants.BACK
+import avelios.starwarsreferenceapp.NavigationConstants.CHARACTER_DETAILS_ROUTE
+import avelios.starwarsreferenceapp.NavigationConstants.CHARACTER_TITLE
+import avelios.starwarsreferenceapp.NavigationConstants.DARK_MODE_ENABLED
+import avelios.starwarsreferenceapp.NavigationConstants.LIGHT_MODE_ENABLED
+import avelios.starwarsreferenceapp.NavigationConstants.OK
+import avelios.starwarsreferenceapp.NavigationConstants.PLANET_DETAILS_ROUTE
+import avelios.starwarsreferenceapp.NavigationConstants.PLANET_TITLE
+import avelios.starwarsreferenceapp.NavigationConstants.SELECT_THEME
+import avelios.starwarsreferenceapp.NavigationConstants.SELECT_TYPOGRAPHY
+import avelios.starwarsreferenceapp.NavigationConstants.SETTINGS
+import avelios.starwarsreferenceapp.NavigationConstants.STARSHIP_DETAILS_ROUTE
+import avelios.starwarsreferenceapp.NavigationConstants.STARSHIP_TITLE
+import avelios.starwarsreferenceapp.NavigationConstants.TOGGLE_FAVORITES
+import avelios.starwarsreferenceapp.NavigationConstants.TOGGLE_THEME
 import avelios.starwarsreferenceapp.ui.theme.ThemeVariant
 import avelios.starwarsreferenceapp.ui.theme.TypographyVariant
+import kotlinx.coroutines.launch
 
 @Composable
 fun MainScreen(
@@ -65,16 +82,16 @@ fun MainScreen(
     val favoriteCharacters by viewModel.favoriteCharacters.collectAsState()
 
     when (state) {
-        is MainState.Loading -> {
-            CircularProgressIndicator()
-        }
+        is MainState.Loading -> LoadingIndicator()
 
         is MainState.DataLoaded -> {
             val characters = viewModel.charactersPager.collectAsLazyPagingItems()
 
             DataScreen(
                 onFavoriteClick = { id, isFavorite ->
-                    viewModel.updateFavoriteStatus(id, isFavorite)
+                    viewModel.viewModelScope.launch {
+                        viewModel.updateFavoriteStatus(id, isFavorite)
+                    }
                 },
                 showSettingsDialog = showSettingsDialog,
                 toggleTheme = toggleTheme,
@@ -105,10 +122,10 @@ fun DataScreen(
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
 
     val title = when (currentBackStackEntry?.destination?.route) {
-        "character_details/{characterId}" -> "Character"
-        "starship_details/{starshipId}" -> "Starship"
-        "planet_details/{planetId}" -> "Planet"
-        else -> "Star Wars APP"
+        CHARACTER_DETAILS_ROUTE -> CHARACTER_TITLE
+        STARSHIP_DETAILS_ROUTE -> STARSHIP_TITLE
+        PLANET_DETAILS_ROUTE -> PLANET_TITLE
+        else -> APP_TITLE
     }
 
     Scaffold(
@@ -117,13 +134,13 @@ fun DataScreen(
                 title = { Text(text = title) },
                 navigationIcon = {
                     if (currentBackStackEntry?.destination?.route in listOf(
-                            "character_details/{characterId}",
-                            "starship_details/{starshipId}",
-                            "planet_details/{planetId}"
+                            CHARACTER_DETAILS_ROUTE,
+                            STARSHIP_DETAILS_ROUTE,
+                            PLANET_DETAILS_ROUTE
                         )
                     ) {
                         IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                            Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = BACK)
                         }
                     }
                 },
@@ -133,23 +150,23 @@ fun DataScreen(
                             Icon(
                                 imageVector =
                                 if (showOnlyFavorites.value) Icons.Default.Star else Icons.Default.Favorite,
-                                contentDescription = "Toggle Favorites"
+                                contentDescription = TOGGLE_FAVORITES
                             )
                         }
                     }
                     IconButton(onClick = {
                         toggleTheme()
-                        val toastMessage = if (isDarkTheme.value) "Dark Mode Enabled!" else "Light Mode Enabled!"
+                        val toastMessage = if (isDarkTheme.value) DARK_MODE_ENABLED else LIGHT_MODE_ENABLED
                         showToast(toastMessage)
                         isDarkTheme.value = !isDarkTheme.value
                     }) {
                         Image(
                             painter = painterResource(id = R.drawable.ic_day_night),
-                            contentDescription = "Toggle Theme"
+                            contentDescription = TOGGLE_THEME
                         )
                     }
                     IconButton(onClick = showSettingsDialog) {
-                        Icon(imageVector = Icons.Default.Settings, contentDescription = "Settings")
+                        Icon(imageVector = Icons.Default.Settings, contentDescription = SETTINGS)
                     }
                 }
             )
@@ -207,15 +224,15 @@ fun NavigationHost(
                 }
             )
         }
-        composable("character_details/{characterId}") { backStackEntry ->
+        composable(CHARACTER_DETAILS_ROUTE) { backStackEntry ->
             val characterId = backStackEntry.arguments?.getString("characterId") ?: return@composable
             CharacterDetailsScreen(characterId = characterId)
         }
-        composable("starship_details/{starshipId}") { backStackEntry ->
+        composable(STARSHIP_DETAILS_ROUTE) { backStackEntry ->
             val starshipId = backStackEntry.arguments?.getString("starshipId") ?: return@composable
             StarshipDetailsScreen(starshipId = starshipId)
         }
-        composable("planet_details/{planetId}") { backStackEntry ->
+        composable(PLANET_DETAILS_ROUTE) { backStackEntry ->
             val planetId = backStackEntry.arguments?.getString("planetId") ?: return@composable
             PlanetDetailsScreen(planetId = planetId)
         }
@@ -246,11 +263,11 @@ fun SettingsDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Settings") },
+        title = { Text(SETTINGS) },
         text = {
             Column {
                 Button(onClick = { themeExpanded.value = true }) {
-                    OutlinedText("Select Theme (${themeVariant.value.name})")
+                    OutlinedText("$SELECT_THEME (${themeVariant.value.name})")
                 }
                 DropdownMenu(
                     expanded = themeExpanded.value,
@@ -268,7 +285,7 @@ fun SettingsDialog(
                 }
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(onClick = { typographyExpanded.value = true }) {
-                    OutlinedText("Select Typography (${typographyVariant.value.name})")
+                    OutlinedText("$SELECT_TYPOGRAPHY (${typographyVariant.value.name})")
                 }
                 DropdownMenu(
                     expanded = typographyExpanded.value,
@@ -289,7 +306,7 @@ fun SettingsDialog(
         confirmButton = {
             TextButton(onClick = onDismiss) {
                 Text(
-                    text = "OK",
+                    text = OK,
                     style = MaterialTheme.typography.bodyMedium.copy(
                         color = MaterialTheme.colorScheme.onBackground,
                         fontSize = 20.sp,
@@ -361,7 +378,36 @@ fun currentRoute(navController: NavHostController): String? {
 }
 
 sealed class NavigationItem(var route: String, var icon: ImageVector, var title: String) {
-    data object Characters : NavigationItem("characters", Icons.Default.Person, "Characters")
-    data object Starships : NavigationItem("starships", Icons.Default.Star, "Starships")
-    data object Planets : NavigationItem("planets", Icons.Default.Place, "Planets")
+    data object Characters : NavigationItem(CHARACTERS_ROUTE, Icons.Default.Person, CHARACTERS_TITLE)
+    data object Starships : NavigationItem(STARSHIPS_ROUTE, Icons.Default.Star, STARSHIPS_TITLE)
+    data object Planets : NavigationItem(PLANETS_ROUTE, Icons.Default.Place, PLANETS_TITLE)
+    private companion object {
+        const val CHARACTERS_ROUTE = "characters"
+        const val STARSHIPS_ROUTE = "starships"
+        const val PLANETS_ROUTE = "planets"
+
+        const val CHARACTERS_TITLE = "Characters"
+        const val STARSHIPS_TITLE = "Starships"
+        const val PLANETS_TITLE = "Planets"
+    }
+}
+
+object NavigationConstants {
+    const val CHARACTER_DETAILS_ROUTE = "character_details/{characterId}"
+    const val STARSHIP_DETAILS_ROUTE = "starship_details/{starshipId}"
+    const val PLANET_DETAILS_ROUTE = "planet_details/{planetId}"
+    const val APP_TITLE = "Star Wars APP"
+    const val CHARACTER_TITLE = "Character"
+    const val STARSHIP_TITLE = "Starship"
+    const val PLANET_TITLE = "Planet"
+
+    const val DARK_MODE_ENABLED = "Dark Mode Enabled!"
+    const val LIGHT_MODE_ENABLED = "Light Mode Enabled!"
+    const val BACK = "Back"
+    const val TOGGLE_FAVORITES = "Toggle Favorites"
+    const val TOGGLE_THEME = "Toggle Theme"
+    const val SETTINGS = "Settings"
+    const val SELECT_THEME = "Select Theme"
+    const val SELECT_TYPOGRAPHY = "Select Typography"
+    const val OK = "OK"
 }

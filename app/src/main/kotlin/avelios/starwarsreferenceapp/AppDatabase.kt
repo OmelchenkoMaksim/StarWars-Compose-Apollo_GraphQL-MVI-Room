@@ -73,6 +73,9 @@ interface CharacterDao {
 
     @Query("UPDATE characters SET isFavorite = :isFavorite WHERE id = :characterId")
     suspend fun updateFavoriteStatus(characterId: String, isFavorite: Boolean)
+
+    @Query("SELECT isFavorite FROM characters WHERE id = :characterId")
+    suspend fun getFavoriteStatus(characterId: String): Boolean?
 }
 
 @Dao

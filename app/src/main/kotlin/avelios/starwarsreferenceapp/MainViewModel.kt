@@ -1,33 +1,29 @@
 package avelios.starwarsreferenceapp
 
-import android.util.Log
-import androidx.appcompat.app.AppCompatDelegate
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
-import com.apollographql.apollo3.ApolloClient
-import com.apollographql.apollo3.api.Optional
-import com.apollographql.apollo3.exception.ApolloException
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class MainViewModel(
-    private val apolloClient: ApolloClient,
-    private val characterDao: CharacterDao,
-    private val starshipDao: StarshipDao,
-    private val planetDao: PlanetDao,
+    private val actor: MainActor,
     internal val settingsManager: SettingsManager
 ) : ViewModel() {
+
     private val _state = MutableStateFlow<MainState>(MainState.Loading)
     val state: StateFlow<MainState> = _state.asStateFlow()
+
+    private val _effect = MutableSharedFlow<MainEffect>()
+
+    private val _news = MutableSharedFlow<MainNews>()
 
     private val _selectedCharacter = MutableStateFlow<StarWarsCharacter?>(null)
     val selectedCharacter: StateFlow<StarWarsCharacter?> = _selectedCharacter
@@ -44,28 +40,22 @@ class MainViewModel(
     private val _isDarkTheme = MutableStateFlow(settingsManager.isDarkMode())
     val isDarkTheme: StateFlow<Boolean> = _isDarkTheme
 
-    val planetsPager: Flow<PagingData<Planet>> = Pager(
-        config = PagingConfig(
-            pageSize = 10,
-            enablePlaceholders = false
-        ),
-        pagingSourceFactory = { PlanetPagingSource(apolloClient) }
-    ).flow.cachedIn(viewModelScope)
-
-    val starshipsPager: Flow<PagingData<Starship>> = Pager(
-        config = PagingConfig(
-            pageSize = 10,
-            enablePlaceholders = false
-        ),
-        pagingSourceFactory = { StarshipPagingSource(apolloClient) }
-    ).flow.cachedIn(viewModelScope)
-
     private val _favoriteCharacters = MutableStateFlow<Map<String, Boolean>>(emptyMap())
     val favoriteCharacters: StateFlow<Map<String, Boolean>> = _favoriteCharacters.asStateFlow()
 
     val charactersPager: Flow<PagingData<StarWarsCharacter>> = Pager(
-        config = PagingConfig(pageSize = 10, enablePlaceholders = false),
-        pagingSourceFactory = { CharacterPagingSource(apolloClient, favoriteCharacters) }
+        config = PagingConfig(pageSize = PAGE_SIZE, enablePlaceholders = false),
+        pagingSourceFactory = { CharacterPagingSource(actor, favoriteCharacters) }
+    ).flow.cachedIn(viewModelScope)
+
+    val starshipsPager: Flow<PagingData<Starship>> = Pager(
+        config = PagingConfig(pageSize = PAGE_SIZE, enablePlaceholders = false),
+        pagingSourceFactory = { StarshipPagingSource(actor) }
+    ).flow.cachedIn(viewModelScope)
+
+    val planetsPager: Flow<PagingData<Planet>> = Pager(
+        config = PagingConfig(pageSize = PAGE_SIZE, enablePlaceholders = false),
+        pagingSourceFactory = { PlanetPagingSource(actor) }
     ).flow.cachedIn(viewModelScope)
 
     init {
@@ -73,20 +63,6 @@ class MainViewModel(
             loadFavoriteCharacters()
             loadData()
         }
-    }
-
-    fun updateFavoriteStatus(characterId: String, isFavorite: Boolean) {
-        viewModelScope.launch {
-            characterDao.updateFavoriteStatus(characterId, isFavorite)
-            val updatedFavorites = _favoriteCharacters.value.toMutableMap()
-            updatedFavorites[characterId] = isFavorite
-            _favoriteCharacters.value = updatedFavorites
-        }
-    }
-
-    private suspend fun loadFavoriteCharacters() {
-        val favorites = characterDao.getAllCharacters().associate { it.id to it.isFavorite }
-        _favoriteCharacters.value = favorites
     }
 
     fun handleIntent(intent: MainIntent) {
@@ -97,274 +73,118 @@ class MainViewModel(
                 is MainIntent.FetchCharacterDetails -> fetchCharacterDetails(intent.characterId)
                 is MainIntent.FetchStarshipDetails -> fetchStarshipDetails(intent.starshipId)
                 is MainIntent.FetchPlanetDetails -> fetchPlanetDetails(intent.planetId)
+                is MainIntent.RefreshData -> refreshData()
             }
         }
     }
 
     private suspend fun loadData() {
-        _state.value = MainState.Loading
+        _isLoading.value = true
         try {
-            val charactersDeferred = viewModelScope.async(Dispatchers.IO) { fetchCharacters() }
-            val starshipsDeferred = viewModelScope.async(Dispatchers.IO) { fetchStarships() }
-            val planetsDeferred = viewModelScope.async(Dispatchers.IO) { fetchPlanets() }
-
-            val characters = charactersDeferred.await()
-            val starships = starshipsDeferred.await()
-            val planets = planetsDeferred.await()
-
-            Log.i("MainViewModel", "Loaded data - Characters: ${characters.size}, Starships: ${starships.size}, Planets: ${planets.size}")
-            _state.value = MainState.DataLoaded(characters, starships, planets)
+            _state.value = actor.loadData()
+            _news.emit(MainNews.DataLoaded)
         } catch (e: Exception) {
-            _state.value = MainState.Error(e.message ?: "Unknown Error")
+            _news.emit(MainNews.ErrorOccurred(e.message ?: "Unknown error occurred"))
+        } finally {
+            _isLoading.value = false
+        }
+    }
+
+    internal suspend fun updateFavoriteStatus(characterId: String, isFavorite: Boolean) {
+        try {
+            actor.updateFavoriteStatus(characterId, isFavorite)
+            val updatedFavorites = _favoriteCharacters.value.toMutableMap()
+            updatedFavorites[characterId] = isFavorite
+            _favoriteCharacters.value = updatedFavorites
+            _effect.emit(MainEffect.ShowToast(if (isFavorite) ADDED_TO_FAVORITES else REMOVED_FROM_FAVORITES))
+        } catch (e: Exception) {
+            _news.emit(MainNews.ErrorOccurred("Failed to update favorite status"))
         }
     }
 
     private suspend fun fetchCharacterDetails(characterId: String) {
         _isLoading.value = true
         try {
-            val character = fetchCharacterDetailsFromServer(characterId)
+            val character = actor.fetchCharacterDetails(characterId)
             _selectedCharacter.value = character
+            _effect.emit(MainEffect.NavigateToDetails(characterId, CHARACTER_TYPE))
         } catch (e: Exception) {
-            _state.value = MainState.Error(e.message ?: "Unknown Error")
+            _news.emit(MainNews.ErrorOccurred("Failed to fetch character details"))
         } finally {
             _isLoading.value = false
-        }
-    }
-
-    private suspend fun fetchCharacterDetailsFromServer(characterId: String): StarWarsCharacter? {
-        val response = try {
-            apolloClient.query(GetCharacterDetailsQuery(characterId)).execute()
-        } catch (e: ApolloException) {
-            println("ApolloException: $e")
-            return null
-        }
-
-        return response.data?.person?.let { person ->
-            StarWarsCharacter(
-                id = person.id,
-                name = person.name,
-                birthYear = person.birthYear ?: "Unknown",
-                eyeColor = person.eyeColor ?: "Unknown",
-                gender = person.gender ?: "Unknown",
-                hairColor = person.hairColor ?: "Unknown",
-                height = person.height ?: 0,
-                mass = person.mass ?: 0.0,
-                homeworld = person.homeworld?.name ?: "Unknown",
-                filmsCount = person.filmConnection?.totalCount ?: 0,
-                skinColor = person.skinColor ?: "Unknown"
-            )
         }
     }
 
     private suspend fun fetchStarshipDetails(starshipId: String) {
         _isLoading.value = true
         try {
-            val starship = fetchStarshipDetailsFromServer(starshipId)
+            val starship = actor.fetchStarshipDetails(starshipId)
             _selectedStarship.value = starship
+            _effect.emit(MainEffect.NavigateToDetails(starshipId, STARSHIP_TYPE))
         } catch (e: Exception) {
-            _state.value = MainState.Error(e.message ?: "Unknown Error")
+            _news.emit(MainNews.ErrorOccurred("Failed to fetch starship details"))
         } finally {
             _isLoading.value = false
-        }
-    }
-
-    private suspend fun fetchStarshipDetailsFromServer(starshipId: String): Starship? {
-        val response = try {
-            apolloClient.query(GetStarshipDetailsQuery(starshipId)).execute()
-        } catch (e: ApolloException) {
-            println("ApolloException: $e")
-            return null
-        }
-
-        return response.data?.starship?.let { starship ->
-            Starship(
-                id = starship.id,
-                name = starship.name,
-                model = starship.model ?: "",
-                starshipClass = starship.starshipClass ?: "",
-                manufacturers = starship.manufacturers?.filterNotNull() ?: emptyList(),
-                length = starship.length?.toFloat() ?: 0f,
-                crew = starship.crew ?: "",
-                passengers = starship.passengers ?: "",
-                maxAtmospheringSpeed = starship.maxAtmospheringSpeed ?: 0,
-                hyperdriveRating = starship.hyperdriveRating?.toFloat() ?: 0f
-            )
-        }
-    }
-
-    private suspend fun fetchPlanetDetailsFromServer(planetId: String): Planet? {
-        val response = try {
-            apolloClient.query(GetPlanetDetailsQuery(planetId)).execute()
-        } catch (e: ApolloException) {
-            println("ApolloException: $e")
-            return null
-        }
-
-        return response.data?.planet?.let { planet ->
-            Planet(
-                id = planet.id,
-                name = planet.name,
-                climates = planet.climates?.mapNotNull { it } ?: emptyList(),
-                diameter = planet.diameter ?: 0,
-                rotationPeriod = planet.rotationPeriod ?: 0,
-                orbitalPeriod = planet.orbitalPeriod ?: 0,
-                gravity = planet.gravity ?: "Unknown",
-                population = planet.population ?: 0.0,
-                terrains = planet.terrains?.mapNotNull { it } ?: emptyList(),
-                surfaceWater = planet.surfaceWater ?: 0.0
-            )
         }
     }
 
     private suspend fun fetchPlanetDetails(planetId: String) {
         _isLoading.value = true
         try {
-            val planet = fetchPlanetDetailsFromServer(planetId)
+            val planet = actor.fetchPlanetDetails(planetId)
             _selectedPlanet.value = planet
+            _effect.emit(MainEffect.NavigateToDetails(planetId, PLANET_TYPE))
         } catch (e: Exception) {
-            _state.value = MainState.Error(e.message ?: "Unknown Error")
+            _news.emit(MainNews.ErrorOccurred("Failed to fetch planet details"))
         } finally {
             _isLoading.value = false
         }
     }
 
-    private suspend fun fetchCharacters(): List<StarWarsCharacter> {
-        val cachedCharacters = characterDao.getAllCharacters()
-        if (cachedCharacters.isNotEmpty()) {
-            return cachedCharacters
-        }
-
-        val charactersList = getCharactersFromServer() ?: emptyList()
-        if (charactersList.isNotEmpty()) {
-            characterDao.insertCharacters(*charactersList.toTypedArray())
-        }
-        return charactersList
-    }
-
-    private suspend fun fetchStarships(): List<Starship> {
-        val cachedStarships = starshipDao.getAllStarships()
-        if (cachedStarships.isNotEmpty()) {
-            return cachedStarships
-        }
-
-        val starshipsList = getStarshipsFromServer() ?: emptyList()
-        if (starshipsList.isNotEmpty()) {
-            starshipDao.insertStarships(*starshipsList.toTypedArray())
-        }
-        return starshipsList
-    }
-
-    private suspend fun fetchPlanets(): List<Planet> {
-        val cachedPlanets = planetDao.getAllPlanets()
-        if (cachedPlanets.isNotEmpty()) {
-            return cachedPlanets
-        }
-
-        val planetsList = getPlanetsFromServer() ?: emptyList()
-        if (planetsList.isNotEmpty()) {
-            planetDao.insertPlanets(*planetsList.toTypedArray())
-        }
-        return planetsList
-    }
-
-    private suspend fun getCharactersFromServer(after: String? = null, first: Int = 10): List<StarWarsCharacter>? {
-        val response = try {
-            apolloClient.query(GetCharactersQuery(Optional.presentIfNotNull(after), Optional.present(first))).execute()
-        } catch (e: ApolloException) {
-            println("ApolloException: $e")
-            return null
-        }
-
-        return response.data?.allPeople?.edges?.mapNotNull { edge ->
-            edge?.node?.let { person: GetCharactersQuery.Node ->
-                StarWarsCharacter(
-                    id = person.id,
-                    name = person.name,
-                    filmsCount = person.filmConnection?.totalCount ?: 0,
-                    birthYear = person.birthYear ?: "Unknown",
-                    eyeColor = person.eyeColor ?: "Unknown",
-                    gender = person.gender ?: "Unknown",
-                    hairColor = person.hairColor ?: "Unknown",
-                    height = person.height ?: 0,
-                    mass = person.mass ?: 0.0,
-                    skinColor = person.skinColor ?: "Unknown",
-                    homeworld = person.homeworld?.name ?: "Unknown"
-                )
-            }
-        } ?: emptyList()
-    }
-
-    private suspend fun getStarshipsFromServer(after: String? = null, first: Int = 10): List<Starship>? {
-        val response = try {
-            apolloClient.query(GetStarshipsQuery(Optional.presentIfNotNull(after), Optional.present(first))).execute()
-        } catch (e: ApolloException) {
-            println("ApolloException: $e")
-            return null
-        }
-
-        return response.data?.allStarships?.edges?.mapNotNull { edge ->
-            edge?.node?.let { starship ->
-                Starship(
-                    id = starship.id,
-                    name = starship.name,
-                    model = starship.model ?: "",
-                    starshipClass = starship.starshipClass ?: "",
-                    manufacturers = starship.manufacturers?.filterNotNull() ?: emptyList(),
-                    length = starship.length?.toFloat() ?: 0f,
-                    crew = starship.crew ?: "",
-                    passengers = starship.passengers ?: "",
-                    maxAtmospheringSpeed = starship.maxAtmospheringSpeed ?: 0,
-                    hyperdriveRating = starship.hyperdriveRating?.toFloat() ?: 0f
-                )
-            }
-        } ?: emptyList()
-    }
-
-    private suspend fun getPlanetsFromServer(after: String? = null, first: Int = 10): List<Planet>? {
-        val response = try {
-            apolloClient.query(GetPlanetsQuery(Optional.presentIfNotNull(after), Optional.present(first))).execute()
-        } catch (e: ApolloException) {
-            println("ApolloException: $e")
-            return null
-        }
-
-        return response.data?.allPlanets?.edges?.mapNotNull { edge ->
-            edge?.node?.let { planet ->
-                Planet(
-                    id = planet.id,
-                    name = planet.name,
-                    climates = planet.climates?.mapNotNull { it } ?: emptyList(),
-                    diameter = planet.diameter ?: 0,
-                    rotationPeriod = planet.rotationPeriod ?: 0,
-                    orbitalPeriod = planet.orbitalPeriod ?: 0,
-                    gravity = planet.gravity ?: "Unknown",
-                    population = planet.population ?: 0.0,
-                    terrains = planet.terrains?.mapNotNull { it } ?: emptyList(),
-                    surfaceWater = planet.surfaceWater ?: 0.0
-                )
-            }
-        } ?: emptyList()
-    }
-
-    fun areListsEmpty(): Boolean {
-        val currentState = _state.value
-        return if (currentState is MainState.DataLoaded) {
-            currentState.characters.isEmpty() || currentState.starships.isEmpty() || currentState.planets.isEmpty()
-        } else {
-            true
+    private suspend fun loadFavoriteCharacters() {
+        try {
+            val favorites = actor.loadFavoriteCharacters()
+            _favoriteCharacters.value = favorites
+        } catch (e: Exception) {
+            _news.emit(MainNews.ErrorOccurred("Failed to load favorite characters"))
         }
     }
 
-    fun refreshData() {
-        viewModelScope.launch { loadData() }
+    internal suspend fun refreshData() {
+        _isLoading.value = true
+        try {
+            actor.refreshData()
+            loadData()
+            _news.emit(MainNews.DataRefreshed)
+        } catch (e: Exception) {
+            _news.emit(MainNews.ErrorOccurred("Failed to refresh data"))
+        } finally {
+            _isLoading.value = false
+        }
     }
 
     fun toggleTheme() {
         val newTheme = !_isDarkTheme.value
         _isDarkTheme.value = newTheme
         settingsManager.setDarkMode(newTheme)
-        AppCompatDelegate.setDefaultNightMode(
-            if (newTheme) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO
-        )
+        viewModelScope.launch {
+            _effect.emit(MainEffect.ThemeChanged(newTheme))
+        }
+    }
+
+    fun areListsEmpty(): Boolean {
+        val currentState = _state.value
+        return if (currentState is MainState.DataLoaded) {
+            currentState.characters.isEmpty() && currentState.starships.isEmpty() && currentState.planets.isEmpty()
+        } else true
+    }
+
+    internal companion object {
+        private const val ADDED_TO_FAVORITES = "Added to favorites"
+        private const val REMOVED_FROM_FAVORITES = "Removed from favorites"
+        private const val CHARACTER_TYPE = "character"
+        private const val STARSHIP_TYPE = "starship"
+        private const val PLANET_TYPE = "planet"
+        private const val PAGE_SIZE = 10
     }
 }
