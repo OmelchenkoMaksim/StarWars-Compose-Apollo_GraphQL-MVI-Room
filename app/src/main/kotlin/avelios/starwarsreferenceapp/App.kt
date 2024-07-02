@@ -63,10 +63,12 @@ internal class App : Application() {
 
         single { StarWarsRepository(get(), get(), get(), get()) }
 
-        single { MainActor(get()) }
+        single { MainActor(get(), get(), get(), get()) }
 
         single { NetworkManager(get(), androidContext()) }
-        viewModel { MainViewModel(get(), get(), get()) }
+        single { appScope } // Добавляем CoroutineScope
+
+        viewModel { MainViewModel(get()) }
     }
 
     override fun onCreate() {
@@ -91,7 +93,7 @@ internal class App : Application() {
         networkCallback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
                 appScope.launch {
-                    mainViewModel.loadData()
+                    mainViewModel.handleIntent(MainAction.LoadData)
                 }
             }
 

@@ -1,6 +1,5 @@
 package avelios.starwarsreferenceapp
 
-import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -38,29 +37,22 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
-import avelios.starwarsreferenceapp.MainScreenConstants.EMPTY_DATA_WITHOUT_INTERNET_MESSAGE
-import avelios.starwarsreferenceapp.MainScreenConstants.EMPTY_DATA_WITH_INTERNET_MESSAGE
-import avelios.starwarsreferenceapp.MainScreenConstants.NO_INTERNET_AND_EMPTY_DATA_MESSAGE
 import avelios.starwarsreferenceapp.MainScreenConstants.OFFLINE_MODE_MESSAGE
 import avelios.starwarsreferenceapp.NavigationConstants.APP_TITLE
 import avelios.starwarsreferenceapp.NavigationConstants.BACK
@@ -80,103 +72,65 @@ import avelios.starwarsreferenceapp.NavigationConstants.STARSHIP_DETAILS_ROUTE
 import avelios.starwarsreferenceapp.NavigationConstants.STARSHIP_DETAILS_SLASH
 import avelios.starwarsreferenceapp.NavigationConstants.STARSHIP_ID_KEY
 import avelios.starwarsreferenceapp.NavigationConstants.STARSHIP_TITLE
-import avelios.starwarsreferenceapp.NavigationConstants.THEME_MODE_CHANGED
 import avelios.starwarsreferenceapp.NavigationConstants.TOGGLE_FAVORITES
 import avelios.starwarsreferenceapp.NavigationConstants.TOGGLE_THEME
+import avelios.starwarsreferenceapp.ui.theme.StarWarsReferenceAppTheme
 import avelios.starwarsreferenceapp.ui.theme.ThemeVariant
 import avelios.starwarsreferenceapp.ui.theme.TypographyVariant
-import kotlinx.coroutines.launch
 import timber.log.Timber
 
 @Composable
-internal fun MainScreen(
-    viewModel: MainViewModel,
-    showSettingsDialog: () -> Unit,
-    toggleTheme: () -> Unit
-) {
+internal fun MainScreen(viewModel: MainViewModel) {
     val state by viewModel.state.collectAsState()
-    val favoriteCharacters by viewModel.favoriteCharacters.collectAsState()
-    val isNetworkAvailable by viewModel.isNetworkAvailable.collectAsState()
-    val charactersPager by viewModel.charactersPager.collectAsState()
+    val showSettingsDialog = remember { mutableStateOf(false) }
 
     when (state) {
         is MainState.Loading -> LoadingIndicator()
 
         is MainState.DataLoaded -> {
-            Timber.d("MainState.DataLoaded state with characters: ${(state as MainState.DataLoaded).characters.size}")
-            val characters = charactersPager.collectAsLazyPagingItems()
+            val dataLoadedState = state as MainState.DataLoaded
+            val themeVariant = remember { mutableStateOf(dataLoadedState.themeVariant) }
+            val typographyVariant = remember { mutableStateOf(dataLoadedState.typographyVariant) }
+            val isDarkTheme = dataLoadedState.isDarkTheme
 
-            DataScreen(
-                onFavoriteClick = { id, isFavorite ->
-                    viewModel.viewModelScope.launch {
-                        Timber.d("Updating favorite status for character ID: $id to $isFavorite")
-                        viewModel.updateFavoriteStatus(id, isFavorite)
+            StarWarsReferenceAppTheme(
+                themeVariant = themeVariant.value,
+                typographyVariant = typographyVariant.value,
+                darkTheme = isDarkTheme
+            ) {
+                if (showSettingsDialog.value) {
+                    SettingsDialog(
+                        onDismiss = { showSettingsDialog.value = false },
+                        themeVariant = themeVariant,
+                        typographyVariant = typographyVariant
+                    ) { newThemeVariant, newTypographyVariant ->
+                        viewModel.handleIntent(MainAction.UpdateThemeAndTypography(newThemeVariant, newTypographyVariant))
+                        themeVariant.value = newThemeVariant
+                        typographyVariant.value = newTypographyVariant
                     }
-                },
-                showSettingsDialog = showSettingsDialog,
-                toggleTheme = toggleTheme,
-                characters = characters,
-                favoriteCharacters = favoriteCharacters
-            )
-        }
-
-        is MainState.EmptyData -> {
-            Box(modifier = Modifier.fillMaxSize().background(Color.Red), contentAlignment = Alignment.Center) {
-                Text(
-                    text = if (isNetworkAvailable) EMPTY_DATA_WITH_INTERNET_MESSAGE
-                    else EMPTY_DATA_WITHOUT_INTERNET_MESSAGE,
-                    color = Color.White
-                )
-            }
-        }
-
-        is MainState.NoInternetAndEmptyData -> {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(NO_INTERNET_AND_EMPTY_DATA_MESSAGE)
+                }
+                DataScreen(viewModel = viewModel, showSettingsDialog = showSettingsDialog)
             }
         }
 
         is MainState.Error -> {
-            val errorMessage = (state as MainState.Error).message
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Error: $errorMessage")
+            Box(modifier = Modifier.fillMaxSize()) {
+                Text(text = (state as MainState.Error).message, color = Color.Red)
             }
-            Timber.e("Error state with message: $errorMessage")
+            Timber.e("Error state in MainScreen: ${(state as MainState.Error).message}")
         }
-    }
 
-    if (!isNetworkAvailable) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color.Red)
-                .padding(8.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(OFFLINE_MODE_MESSAGE, color = Color.White)
-        }
+        else -> Timber.w("Unexpected state in MainScreen: $state")
     }
-}
-
-object MainScreenConstants {
-    const val EMPTY_DATA_WITH_INTERNET_MESSAGE = "The lists are empty. Try refreshing the data."
-    const val EMPTY_DATA_WITHOUT_INTERNET_MESSAGE = "No internet connection. The lists are empty."
-    const val NO_INTERNET_AND_EMPTY_DATA_MESSAGE = "No internet connection and the local database is empty."
-    const val OFFLINE_MODE_MESSAGE = "Offline mode: Please check your internet connection"
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DataScreen(
-    onFavoriteClick: (String, Boolean) -> Unit,
-    showSettingsDialog: () -> Unit,
-    toggleTheme: () -> Unit,
-    characters: LazyPagingItems<StarWarsCharacter>,
-    favoriteCharacters: Map<String, Boolean>
-) {
+internal fun DataScreen(viewModel: MainViewModel, showSettingsDialog: MutableState<Boolean>) {
+    val state by viewModel.state.collectAsState()
+    val isNetworkAvailable by viewModel.isNetworkAvailable.collectAsState()
+
     val navController = rememberNavController()
-    val isDarkTheme = remember { mutableStateOf(false) }
-    val showToast = rememberToast()
     val showOnlyFavorites = remember { mutableStateOf(false) }
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
 
@@ -205,25 +159,20 @@ fun DataScreen(
                 },
                 actions = {
                     if (currentBackStackEntry?.destination?.route == NavigationItem.Characters.route) {
-                        IconButton(onClick = { showOnlyFavorites.value = !showOnlyFavorites.value }) {
+                        IconButton(onClick = { viewModel.handleIntent(MainAction.ToggleShowOnlyFavorites) }) {
                             Icon(
-                                imageVector =
-                                if (showOnlyFavorites.value) Icons.Default.Star else Icons.Default.Favorite,
+                                imageVector = if (showOnlyFavorites.value) Icons.Default.Star else Icons.Default.Favorite,
                                 contentDescription = TOGGLE_FAVORITES
                             )
                         }
                     }
-                    IconButton(onClick = {
-                        toggleTheme()
-                        isDarkTheme.value = !isDarkTheme.value
-                        showToast(THEME_MODE_CHANGED)
-                    }) {
+                    IconButton(onClick = { viewModel.handleIntent(MainAction.ToggleTheme) }) {
                         Image(
                             painter = painterResource(id = R.drawable.ic_day_night),
                             contentDescription = TOGGLE_THEME
                         )
                     }
-                    IconButton(onClick = showSettingsDialog) {
+                    IconButton(onClick = { showSettingsDialog.value = true }) {
                         Icon(imageVector = Icons.Default.Settings, contentDescription = SETTINGS)
                     }
                 }
@@ -233,43 +182,61 @@ fun DataScreen(
             BottomNavigationBar(navController)
         }
     ) { paddingValues ->
-        NavigationHost(
-            navController = navController,
-            paddingValues = paddingValues,
-            onFavoriteClick = onFavoriteClick,
-            showOnlyFavorites = showOnlyFavorites.value,
-            characters = characters,
-            favoriteCharacters = favoriteCharacters
-        )
+        Box(modifier = Modifier.fillMaxSize()) {
+            NavigationHost(
+                navController = navController,
+                paddingValues = paddingValues,
+                viewModel = viewModel,
+            )
+
+            if (!isNetworkAvailable) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color.Red)
+                        .padding(8.dp)
+                        .align(Alignment.BottomCenter),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(OFFLINE_MODE_MESSAGE, color = Color.White)
+                }
+            }
+        }
     }
 }
 
 @Composable
-fun NavigationHost(
+internal fun NavigationHost(
     navController: NavHostController,
     paddingValues: PaddingValues,
-    onFavoriteClick: (String, Boolean) -> Unit,
-    showOnlyFavorites: Boolean,
-    characters: LazyPagingItems<StarWarsCharacter>,
-    favoriteCharacters: Map<String, Boolean>
+    viewModel: MainViewModel
 ) {
+    val state by viewModel.state.collectAsState()
+    val favoriteCharacters by viewModel.favoriteCharacters.collectAsState()
+    val characters = viewModel.charactersPager.collectAsState().value.collectAsLazyPagingItems()
+    val starships = viewModel.starshipsPager.collectAsState().value.collectAsLazyPagingItems()
+    val planets = viewModel.planetsPager.collectAsState().value.collectAsLazyPagingItems()
+
     NavHost(
         navController, startDestination = NavigationItem.Characters.route,
         modifier = Modifier.padding(paddingValues)
     ) {
         composable(NavigationItem.Characters.route) {
             CharactersScreen(
-                showOnlyFavorites = showOnlyFavorites,
+                characters = characters,
+                favoriteCharacters = favoriteCharacters,
                 onCharacterClick = { characterId ->
                     navController.navigate("$CHARACTER_DETAILS_SLASH$characterId")
                 },
-                onFavoriteClick = onFavoriteClick,
-                characters = characters,
-                favoriteCharacters = favoriteCharacters
+                onFavoriteClick = { id, isFavorite ->
+                    viewModel.handleIntent(MainAction.UpdateFavoriteStatus(id, isFavorite))
+                },
+                showOnlyFavorites = (state as? MainState.DataLoaded)?.showOnlyFavorites ?: false,
             )
         }
         composable(NavigationItem.Starships.route) {
             StarshipsScreen(
+                starships = starships,
                 onStarshipClick = { starshipId ->
                     navController.navigate("$STARSHIP_DETAILS_SLASH$starshipId")
                 }
@@ -277,6 +244,7 @@ fun NavigationHost(
         }
         composable(NavigationItem.Planets.route) {
             PlanetsScreen(
+                planets = planets,
                 onPlanetClick = { planetId ->
                     navController.navigate("$PLANET_DETAILS_SLASH$planetId")
                 }
@@ -284,28 +252,32 @@ fun NavigationHost(
         }
         composable(CHARACTER_DETAILS_ROUTE) { backStackEntry ->
             val characterId = backStackEntry.arguments?.getString(CHARACTER_ID_KEY) ?: return@composable
-            CharacterDetailsScreen(characterId = characterId)
+            CharacterDetailsScreen(
+                characterId = characterId,
+                character = viewModel.selectedCharacter.collectAsState().value,
+                isLoading = viewModel.isLoading.collectAsState().value,
+                isNetworkAvailable = viewModel.isNetworkAvailable.collectAsState().value,
+                onFetchCharacterDetails = { viewModel.handleIntent(MainAction.FetchCharacterDetails(characterId)) }
+            )
         }
         composable(STARSHIP_DETAILS_ROUTE) { backStackEntry ->
             val starshipId = backStackEntry.arguments?.getString(STARSHIP_ID_KEY) ?: return@composable
-            StarshipDetailsScreen(starshipId = starshipId)
+            StarshipDetailsScreen(
+                starshipId = starshipId,
+                starship = viewModel.selectedStarship.collectAsState().value,
+                isLoading = viewModel.isLoading.collectAsState().value,
+                isNetworkAvailable = viewModel.isNetworkAvailable.collectAsState().value
+            ) { viewModel.handleIntent(MainAction.FetchStarshipDetails(starshipId)) }
         }
         composable(PLANET_DETAILS_ROUTE) { backStackEntry ->
             val planetId = backStackEntry.arguments?.getString(PLANET_ID_KEY) ?: return@composable
-            PlanetDetailsScreen(planetId = planetId)
+            PlanetDetailsScreen(
+                planetId = planetId,
+                planet = viewModel.selectedPlanet.collectAsState().value,
+                isLoading = viewModel.isLoading.collectAsState().value,
+                isNetworkAvailable = viewModel.isNetworkAvailable.collectAsState().value
+            ) { viewModel.handleIntent(MainAction.FetchPlanetDetails(planetId)) }
         }
-    }
-}
-
-@Composable
-fun rememberToast(): (String) -> Unit {
-    val context = LocalContext.current
-    var toast by remember { mutableStateOf<Toast?>(null) }
-
-    return { message: String ->
-        toast?.cancel()
-        toast = Toast.makeText(context, message, Toast.LENGTH_SHORT)
-        toast?.show()
     }
 }
 
@@ -362,7 +334,10 @@ internal fun SettingsDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = {
+                onSaveSettings(themeVariant.value, typographyVariant.value)
+                onDismiss()
+            }) {
                 Text(
                     text = OK,
                     style = MaterialTheme.typography.bodyMedium.copy(
@@ -476,4 +451,11 @@ object NavigationConstants {
     const val CHARACTER_ID_KEY = "characterId"
     const val STARSHIP_ID_KEY = "starshipId"
     const val PLANET_ID_KEY = "planetId"
+}
+
+object MainScreenConstants {
+    const val EMPTY_DATA_WITH_INTERNET_MESSAGE = "The lists are empty. Try refreshing the data."
+    const val EMPTY_DATA_WITHOUT_INTERNET_MESSAGE = "No internet connection. The lists are empty."
+    const val NO_INTERNET_AND_EMPTY_DATA_MESSAGE = "No internet connection and the local database is empty."
+    const val OFFLINE_MODE_MESSAGE = "Offline mode: Please check your internet connection"
 }

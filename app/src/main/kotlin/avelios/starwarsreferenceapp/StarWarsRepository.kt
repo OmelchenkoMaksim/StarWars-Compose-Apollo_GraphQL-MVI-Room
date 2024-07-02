@@ -1,6 +1,6 @@
 package avelios.starwarsreferenceapp
 
-import avelios.starwarsreferenceapp.MainViewModel.Companion.PAGE_SIZE
+import android.nfc.tech.MifareUltralight.PAGE_SIZE
 import com.apollographql.apollo3.ApolloClient
 import com.apollographql.apollo3.api.ApolloResponse
 import com.apollographql.apollo3.api.Optional
@@ -9,9 +9,9 @@ import timber.log.Timber
 
 class StarWarsRepository(
     private val apolloClient: ApolloClient,
-    internal val characterDao: CharacterDao,
-    internal val starshipDao: StarshipDao,
-    internal val planetDao: PlanetDao
+    private val characterDao: CharacterDao,
+    private val starshipDao: StarshipDao,
+    private val planetDao: PlanetDao
 ) {
     suspend fun getAllCharacters(): List<StarWarsCharacter> {
         return characterDao.getAllCharacters()

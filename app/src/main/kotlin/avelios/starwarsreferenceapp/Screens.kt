@@ -36,7 +36,6 @@ import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,9 +44,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
-import androidx.paging.compose.collectAsLazyPagingItems
 import avelios.starwarsreferenceapp.CharacterDetailsScreenConstants.ADD_TO_FAVORITES
 import avelios.starwarsreferenceapp.CharacterDetailsScreenConstants.BIRTH_YEAR
 import avelios.starwarsreferenceapp.CharacterDetailsScreenConstants.EYE_COLOR
@@ -80,15 +77,14 @@ import avelios.starwarsreferenceapp.StarshipDetailsScreenConstants.NAME_STARSHIP
 import avelios.starwarsreferenceapp.StarshipDetailsScreenConstants.PASSENGERS
 import avelios.starwarsreferenceapp.StarshipDetailsScreenConstants.STARSHIP
 import avelios.starwarsreferenceapp.StarshipDetailsScreenConstants.STARSHIP_CLASS
-import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun CharactersScreen(
-    showOnlyFavorites: Boolean,
+    characters: LazyPagingItems<StarWarsCharacter>,
+    favoriteCharacters: Map<String, Boolean>,
     onCharacterClick: (String) -> Unit,
     onFavoriteClick: (String, Boolean) -> Unit,
-    characters: LazyPagingItems<StarWarsCharacter>,
-    favoriteCharacters: Map<String, Boolean>
+    showOnlyFavorites: Boolean
 ) {
     LazyColumn {
         items(
@@ -113,36 +109,14 @@ fun CharactersScreen(
 
 @Composable
 fun StarshipsScreen(
+    starships: LazyPagingItems<Starship>,
     onStarshipClick: (String) -> Unit
 ) {
-    val viewModel: MainViewModel = koinViewModel()
-    val starshipsPagingData by viewModel.starshipsPager.collectAsState()
-    val lazyPagingItems: LazyPagingItems<Starship> = starshipsPagingData.collectAsLazyPagingItems()
-
-    Box(modifier = Modifier.fillMaxSize()) {
-        LazyColumn {
-            items(lazyPagingItems.itemCount) { index ->
-                val starship = lazyPagingItems[index]
-                starship?.let {
-                    StarshipItem(starship = it, onClick = { onStarshipClick(it.id) })
-                }
-            }
-        }
-
-        lazyPagingItems.apply {
-            when {
-                loadState.refresh is LoadState.Loading -> LoadingIndicator()
-                loadState.append is LoadState.Loading -> LoadingIndicator()
-
-                loadState.refresh is LoadState.Error -> {
-                    val e = lazyPagingItems.loadState.refresh as LoadState.Error
-                    Text(text = "Error: ${e.error.localizedMessage}")
-                }
-
-                loadState.append is LoadState.Error -> {
-                    val e = lazyPagingItems.loadState.append as LoadState.Error
-                    Text(text = "Error: ${e.error.localizedMessage}")
-                }
+    LazyColumn {
+        items(starships.itemCount) { index ->
+            val starship = starships[index]
+            starship?.let {
+                StarshipItem(starship = it, onClick = { onStarshipClick(it.id) })
             }
         }
     }
@@ -150,67 +124,49 @@ fun StarshipsScreen(
 
 @Composable
 fun PlanetsScreen(
+    planets: LazyPagingItems<Planet>,
     onPlanetClick: (String) -> Unit
 ) {
-    val viewModel: MainViewModel = koinViewModel()
-    val planetsPagingData by viewModel.planetsPager.collectAsState()
-    val lazyPagingItems: LazyPagingItems<Planet> = planetsPagingData.collectAsLazyPagingItems()
-
-    Box(modifier = Modifier.fillMaxSize()) {
-        LazyColumn {
-            items(lazyPagingItems.itemCount) { index ->
-                val planet = lazyPagingItems[index]
-                planet?.let {
-                    PlanetItem(planet = it, onClick = { onPlanetClick(it.id) })
-                }
-            }
-        }
-
-        lazyPagingItems.apply {
-            when {
-                loadState.refresh is LoadState.Loading -> LoadingIndicator()
-                loadState.append is LoadState.Loading -> LoadingIndicator()
-
-                loadState.refresh is LoadState.Error -> {
-                    val e = lazyPagingItems.loadState.refresh as LoadState.Error
-                    Text(text = "Error: ${e.error.localizedMessage}")
-                }
-
-                loadState.append is LoadState.Error -> {
-                    val e = lazyPagingItems.loadState.append as LoadState.Error
-                    Text(text = "Error: ${e.error.localizedMessage}")
-                }
+    LazyColumn {
+        items(planets.itemCount) { index ->
+            val planet = planets[index]
+            planet?.let {
+                PlanetItem(planet = it, onClick = { onPlanetClick(it.id) })
             }
         }
     }
 }
 
 @Composable
-fun CharacterDetailsScreen(characterId: String) {
-    val viewModel: MainViewModel = koinViewModel()
-    val character by viewModel.selectedCharacter.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    val isNetworkAvailable by viewModel.isNetworkAvailable.collectAsState()
-
-    LaunchedEffect(characterId) {
-        viewModel.handleIntent(MainIntent.FetchCharacterDetails(characterId))
-    }
+fun CharacterDetailsScreen(
+    characterId: String,
+    character: StarWarsCharacter?,
+    isLoading: Boolean,
+    isNetworkAvailable: Boolean,
+    onFetchCharacterDetails: () -> Unit
+) {
+    LaunchedEffect(characterId) { onFetchCharacterDetails() }
 
     if (isLoading) LoadingIndicator()
-    else {
-        if (!isNetworkAvailable) {
-            Text(
-                NO_CONNECTION,
-                color = Color.Red, modifier = Modifier.padding(16.dp)
-            )
-        } else {
-            character?.let { characterDetails: StarWarsCharacter ->
-                Card(
-                    shape = RoundedCornerShape(12.dp),
-                    elevation = CardDefaults.cardElevation(4.dp),
-                    modifier = Modifier.padding(12.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
+    else if (!isNetworkAvailable) {
+        Text(
+            NO_CONNECTION,
+            color = Color.Red,
+            modifier = Modifier.padding(16.dp)
+        )
+    } else {
+        character?.let { characterDetails: StarWarsCharacter ->
+            Card(
+                shape = RoundedCornerShape(12.dp),
+                elevation = CardDefaults.cardElevation(4.dp),
+                modifier = Modifier.padding(12.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Box(
+                        modifier = Modifier
+                            .background(MaterialTheme.colorScheme.onSurfaceVariant)
+                            .padding(8.dp)
+                    ) {
                         Text(
                             text = "${NAME_CHARACTER}${characterDetails.name}",
                             style = typography.bodyLarge.copy(
@@ -222,16 +178,16 @@ fun CharacterDetailsScreen(characterId: String) {
                             ),
                             color = MaterialTheme.colorScheme.primary
                         )
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-                        Text(text = "${BIRTH_YEAR}${characterDetails.birthYear}", style = typography.bodyMedium)
-                        Text(text = "${EYE_COLOR}${characterDetails.eyeColor}", style = typography.bodyMedium)
-                        Text(text = "${GENDER}${characterDetails.gender}", style = typography.bodyMedium)
-                        Text(text = "${HAIR_COLOR}${characterDetails.hairColor}", style = typography.bodyMedium)
-                        Text(text = "${HEIGHT}${characterDetails.height}", style = typography.bodyMedium)
-                        Text(text = "${MASS}${characterDetails.mass}", style = typography.bodyMedium)
-                        Text(text = "${SKIN_COLOR}${characterDetails.skinColor}", style = typography.bodyMedium)
-                        Text(text = "${HOMEWORLD}${characterDetails.homeworld}", style = typography.bodyMedium)
                     }
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+                    Text(text = "${BIRTH_YEAR}${characterDetails.birthYear}", style = typography.bodyMedium)
+                    Text(text = "${EYE_COLOR}${characterDetails.eyeColor}", style = typography.bodyMedium)
+                    Text(text = "${GENDER}${characterDetails.gender}", style = typography.bodyMedium)
+                    Text(text = "${HAIR_COLOR}${characterDetails.hairColor}", style = typography.bodyMedium)
+                    Text(text = "${HEIGHT}${characterDetails.height}", style = typography.bodyMedium)
+                    Text(text = "${MASS}${characterDetails.mass}", style = typography.bodyMedium)
+                    Text(text = "${SKIN_COLOR}${characterDetails.skinColor}", style = typography.bodyMedium)
+                    Text(text = "${HOMEWORLD}${characterDetails.homeworld}", style = typography.bodyMedium)
                 }
             }
         }
@@ -239,15 +195,14 @@ fun CharacterDetailsScreen(characterId: String) {
 }
 
 @Composable
-fun StarshipDetailsScreen(starshipId: String) {
-    val viewModel: MainViewModel = koinViewModel()
-    val starship by viewModel.selectedStarship.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    val isNetworkAvailable by viewModel.isNetworkAvailable.collectAsState()
-
-    LaunchedEffect(starshipId) {
-        viewModel.handleIntent(MainIntent.FetchStarshipDetails(starshipId))
-    }
+fun StarshipDetailsScreen(
+    starshipId: String,
+    starship: Starship?,
+    isLoading: Boolean,
+    isNetworkAvailable: Boolean,
+    onFetchStarshipDetails: () -> Unit
+) {
+    LaunchedEffect(starshipId) { onFetchStarshipDetails() }
 
     if (isLoading) LoadingIndicator()
     else {
@@ -286,15 +241,14 @@ fun StarshipDetailsScreen(starshipId: String) {
 }
 
 @Composable
-fun PlanetDetailsScreen(planetId: String) {
-    val viewModel: MainViewModel = koinViewModel()
-    val planet by viewModel.selectedPlanet.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    val isNetworkAvailable by viewModel.isNetworkAvailable.collectAsState()
-
-    LaunchedEffect(planetId) {
-        viewModel.handleIntent(MainIntent.FetchPlanetDetails(planetId))
-    }
+fun PlanetDetailsScreen(
+    planetId: String,
+    planet: Planet?,
+    isLoading: Boolean,
+    isNetworkAvailable: Boolean,
+    onFetchPlanetDetails: () -> Unit
+) {
+    LaunchedEffect(planetId) { onFetchPlanetDetails() }
 
     if (isLoading) LoadingIndicator()
     else {
