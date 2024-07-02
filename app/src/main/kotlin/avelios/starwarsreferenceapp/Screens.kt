@@ -190,41 +190,48 @@ fun CharacterDetailsScreen(characterId: String) {
     val viewModel: MainViewModel = koinViewModel()
     val character by viewModel.selectedCharacter.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val isNetworkAvailable by viewModel.isNetworkAvailable.collectAsState()
 
     LaunchedEffect(characterId) {
         viewModel.handleIntent(MainIntent.FetchCharacterDetails(characterId))
     }
 
-    if (isLoading) {
-        LoadingIndicator()
-    } else {
-        character?.let { characterDetails: StarWarsCharacter ->
-            Card(
-                shape = RoundedCornerShape(12.dp),
-                elevation = CardDefaults.cardElevation(4.dp),
-                modifier = Modifier.padding(12.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "${NAME_CHARACTER}${characterDetails.name}",
-                        style = typography.bodyLarge.copy(
-                            shadow = Shadow(
-                                color = MaterialTheme.colorScheme.onBackground,
-                                offset = Offset(2f, 2f),
-                                blurRadius = 2f
-                            )
-                        ),
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-                    Text(text = "${BIRTH_YEAR}${characterDetails.birthYear}", style = typography.bodyMedium)
-                    Text(text = "${EYE_COLOR}${characterDetails.eyeColor}", style = typography.bodyMedium)
-                    Text(text = "${GENDER}${characterDetails.gender}", style = typography.bodyMedium)
-                    Text(text = "${HAIR_COLOR}${characterDetails.hairColor}", style = typography.bodyMedium)
-                    Text(text = "${HEIGHT}${characterDetails.height}", style = typography.bodyMedium)
-                    Text(text = "${MASS}${characterDetails.mass}", style = typography.bodyMedium)
-                    Text(text = "${SKIN_COLOR}${characterDetails.skinColor}", style = typography.bodyMedium)
-                    Text(text = "${HOMEWORLD}${characterDetails.homeworld}", style = typography.bodyMedium)
+    if (isLoading) LoadingIndicator()
+    else {
+        if (!isNetworkAvailable) {
+            Text(
+                NO_CONNECTION,
+                color = Color.Red, modifier = Modifier.padding(16.dp)
+            )
+        } else {
+            character?.let { characterDetails: StarWarsCharacter ->
+                Card(
+                    shape = RoundedCornerShape(12.dp),
+                    elevation = CardDefaults.cardElevation(4.dp),
+                    modifier = Modifier.padding(12.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "${NAME_CHARACTER}${characterDetails.name}",
+                            style = typography.bodyLarge.copy(
+                                shadow = Shadow(
+                                    color = MaterialTheme.colorScheme.onBackground,
+                                    offset = Offset(2f, 2f),
+                                    blurRadius = 2f
+                                )
+                            ),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+                        Text(text = "${BIRTH_YEAR}${characterDetails.birthYear}", style = typography.bodyMedium)
+                        Text(text = "${EYE_COLOR}${characterDetails.eyeColor}", style = typography.bodyMedium)
+                        Text(text = "${GENDER}${characterDetails.gender}", style = typography.bodyMedium)
+                        Text(text = "${HAIR_COLOR}${characterDetails.hairColor}", style = typography.bodyMedium)
+                        Text(text = "${HEIGHT}${characterDetails.height}", style = typography.bodyMedium)
+                        Text(text = "${MASS}${characterDetails.mass}", style = typography.bodyMedium)
+                        Text(text = "${SKIN_COLOR}${characterDetails.skinColor}", style = typography.bodyMedium)
+                        Text(text = "${HOMEWORLD}${characterDetails.homeworld}", style = typography.bodyMedium)
+                    }
                 }
             }
         }
@@ -236,35 +243,42 @@ fun StarshipDetailsScreen(starshipId: String) {
     val viewModel: MainViewModel = koinViewModel()
     val starship by viewModel.selectedStarship.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val isNetworkAvailable by viewModel.isNetworkAvailable.collectAsState()
 
     LaunchedEffect(starshipId) {
         viewModel.handleIntent(MainIntent.FetchStarshipDetails(starshipId))
     }
 
-    if (isLoading) {
-        LoadingIndicator()
-    } else {
-        starship?.let { starshipDetails: Starship ->
-            Card(
-                shape = RoundedCornerShape(12.dp),
-                elevation = CardDefaults.cardElevation(4.dp),
-                modifier = Modifier.padding(12.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "${NAME_STARSHIP}${starshipDetails.name}",
-                        style = typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-                    Text(text = "${MODEL}${starshipDetails.model}", style = typography.bodyMedium)
-                    Text(text = "${STARSHIP_CLASS}${starshipDetails.starshipClass}", style = typography.bodyMedium)
-                    Text(text = "${MANUFACTURERS}${starshipDetails.manufacturers.joinToString()}", style = typography.bodyMedium)
-                    Text(text = "${LENGTH}${starshipDetails.length}", style = typography.bodyMedium)
-                    Text(text = "${CREW}${starshipDetails.crew}", style = typography.bodyMedium)
-                    Text(text = "${PASSENGERS}${starshipDetails.passengers}", style = typography.bodyMedium)
-                    Text(text = "${MAX_ATMOSPHERING_SPEED}${starshipDetails.maxAtmospheringSpeed}", style = typography.bodyMedium)
-                    Text(text = "${HYPERDRIVE_RATING}${starshipDetails.hyperdriveRating}", style = typography.bodyMedium)
+    if (isLoading) LoadingIndicator()
+    else {
+        if (!isNetworkAvailable) {
+            Text(
+                NO_CONNECTION,
+                color = Color.Red, modifier = Modifier.padding(16.dp)
+            )
+        } else {
+            starship?.let { starshipDetails: Starship ->
+                Card(
+                    shape = RoundedCornerShape(12.dp),
+                    elevation = CardDefaults.cardElevation(4.dp),
+                    modifier = Modifier.padding(12.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "${NAME_STARSHIP}${starshipDetails.name}",
+                            style = typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+                        Text(text = "${MODEL}${starshipDetails.model}", style = typography.bodyMedium)
+                        Text(text = "${STARSHIP_CLASS}${starshipDetails.starshipClass}", style = typography.bodyMedium)
+                        Text(text = "${MANUFACTURERS}${starshipDetails.manufacturers.joinToString()}", style = typography.bodyMedium)
+                        Text(text = "${LENGTH}${starshipDetails.length}", style = typography.bodyMedium)
+                        Text(text = "${CREW}${starshipDetails.crew}", style = typography.bodyMedium)
+                        Text(text = "${PASSENGERS}${starshipDetails.passengers}", style = typography.bodyMedium)
+                        Text(text = "${MAX_ATMOSPHERING_SPEED}${starshipDetails.maxAtmospheringSpeed}", style = typography.bodyMedium)
+                        Text(text = "${HYPERDRIVE_RATING}${starshipDetails.hyperdriveRating}", style = typography.bodyMedium)
+                    }
                 }
             }
         }
@@ -276,35 +290,42 @@ fun PlanetDetailsScreen(planetId: String) {
     val viewModel: MainViewModel = koinViewModel()
     val planet by viewModel.selectedPlanet.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val isNetworkAvailable by viewModel.isNetworkAvailable.collectAsState()
 
     LaunchedEffect(planetId) {
         viewModel.handleIntent(MainIntent.FetchPlanetDetails(planetId))
     }
 
-    if (isLoading) {
-        LoadingIndicator()
-    } else {
-        planet?.let { planetDetails: Planet ->
-            Card(
-                shape = RoundedCornerShape(12.dp),
-                elevation = CardDefaults.cardElevation(4.dp),
-                modifier = Modifier.padding(12.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "${NAME_PLANET}${planetDetails.name}",
-                        style = typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-                    Text(text = "${CLIMATES}${planetDetails.climates.joinToString()}", style = typography.bodyMedium)
-                    Text(text = "${DIAMETER}${planetDetails.diameter}", style = typography.bodyMedium)
-                    Text(text = "${ROTATION_PERIOD}${planetDetails.rotationPeriod}", style = typography.bodyMedium)
-                    Text(text = "${ORBITAL_PERIOD}${planetDetails.orbitalPeriod}", style = typography.bodyMedium)
-                    Text(text = "${GRAVITY}${planetDetails.gravity}", style = typography.bodyMedium)
-                    Text(text = "${POPULATION}${planetDetails.population}", style = typography.bodyMedium)
-                    Text(text = "${TERRAINS}${planetDetails.terrains.joinToString()}", style = typography.bodyMedium)
-                    Text(text = "${SURFACE_WATER}${planetDetails.surfaceWater}", style = typography.bodyMedium)
+    if (isLoading) LoadingIndicator()
+    else {
+        if (!isNetworkAvailable) {
+            Text(
+                NO_CONNECTION,
+                color = Color.Red, modifier = Modifier.padding(16.dp)
+            )
+        } else {
+            planet?.let { planetDetails: Planet ->
+                Card(
+                    shape = RoundedCornerShape(12.dp),
+                    elevation = CardDefaults.cardElevation(4.dp),
+                    modifier = Modifier.padding(12.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "${NAME_PLANET}${planetDetails.name}",
+                            style = typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+                        Text(text = "${CLIMATES}${planetDetails.climates.joinToString()}", style = typography.bodyMedium)
+                        Text(text = "${DIAMETER}${planetDetails.diameter}", style = typography.bodyMedium)
+                        Text(text = "${ROTATION_PERIOD}${planetDetails.rotationPeriod}", style = typography.bodyMedium)
+                        Text(text = "${ORBITAL_PERIOD}${planetDetails.orbitalPeriod}", style = typography.bodyMedium)
+                        Text(text = "${GRAVITY}${planetDetails.gravity}", style = typography.bodyMedium)
+                        Text(text = "${POPULATION}${planetDetails.population}", style = typography.bodyMedium)
+                        Text(text = "${TERRAINS}${planetDetails.terrains.joinToString()}", style = typography.bodyMedium)
+                        Text(text = "${SURFACE_WATER}${planetDetails.surfaceWater}", style = typography.bodyMedium)
+                    }
                 }
             }
         }
@@ -394,6 +415,7 @@ fun LoadingIndicator(
 }
 
 const val TWEEN_ANIMATION_DURATION = 500
+const val NO_CONNECTION = "No internet connection. Please check your connection to fetch data."
 
 object CharacterDetailsScreenConstants {
     const val NAME_CHARACTER = "Name: "

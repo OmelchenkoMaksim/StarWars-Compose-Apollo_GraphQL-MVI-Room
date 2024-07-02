@@ -154,7 +154,7 @@ class StarWarsRepository(
         }
     }
 
-    suspend fun fetchStarships(after: String? = null, first: Int = PAGE_SIZE): List<Starship> {
+    suspend fun fetchStarships(after: String? = null, first: Int = PAGE_SIZE): StarshipsResponse {
         return try {
             val response: ApolloResponse<GetStarshipsQuery.Data> =
                 apolloClient.query(
@@ -164,7 +164,7 @@ class StarWarsRepository(
                     )
                 ).execute()
 
-            response.data?.allStarships?.edges?.mapNotNull { edge ->
+            val starships = response.data?.allStarships?.edges?.mapNotNull { edge ->
                 edge?.node?.let { starship ->
                     Starship(
                         id = starship.id,
@@ -180,13 +180,20 @@ class StarWarsRepository(
                     )
                 }
             } ?: emptyList()
+
+            val pageInfo = PageInfo(
+                endCursor = response.data?.allStarships?.pageInfo?.endCursor,
+                hasNextPage = response.data?.allStarships?.pageInfo?.hasNextPage ?: false
+            )
+
+            StarshipsResponse(starships, pageInfo)
         } catch (e: ApolloException) {
             Timber.e(e, "Error fetching starships")
-            emptyList()
+            StarshipsResponse(emptyList(), PageInfo(null, false))
         }
     }
 
-    suspend fun fetchPlanets(after: String? = null, first: Int = PAGE_SIZE): List<Planet> {
+    suspend fun fetchPlanets(after: String? = null, first: Int = PAGE_SIZE): PlanetsResponse {
         return try {
             val response: ApolloResponse<GetPlanetsQuery.Data> =
                 apolloClient.query(
@@ -195,7 +202,8 @@ class StarWarsRepository(
                         Optional.present(first)
                     )
                 ).execute()
-            response.data?.allPlanets?.edges?.mapNotNull { edge ->
+
+            val planets = response.data?.allPlanets?.edges?.mapNotNull { edge ->
                 edge?.node?.let { planet ->
                     Planet(
                         id = planet.id,
@@ -211,21 +219,28 @@ class StarWarsRepository(
                     )
                 }
             } ?: emptyList()
+
+            val pageInfo = PageInfo(
+                endCursor = response.data?.allPlanets?.pageInfo?.endCursor,
+                hasNextPage = response.data?.allPlanets?.pageInfo?.hasNextPage ?: false
+            )
+
+            PlanetsResponse(planets, pageInfo)
         } catch (e: ApolloException) {
             Timber.e(e, "Error fetching planets")
-            emptyList()
+            PlanetsResponse(emptyList(), PageInfo(null, false))
         }
     }
 
     suspend fun refreshData() {
         try {
-            val charactersResponse = fetchCharacters()
-            val starships = fetchStarships()
-            val planets = fetchPlanets()
+            val charactersResponse: CharactersResponse = fetchCharacters()
+            val starshipsResponse: StarshipsResponse = fetchStarships()
+            val planetsResponse: PlanetsResponse = fetchPlanets()
 
             characterDao.insertCharacters(*charactersResponse.characters.toTypedArray())
-            starshipDao.insertStarships(*starships.toTypedArray())
-            planetDao.insertPlanets(*planets.toTypedArray())
+            starshipDao.insertStarships(*starshipsResponse.starships.toTypedArray())
+            planetDao.insertPlanets(*planetsResponse.planets.toTypedArray())
         } catch (e: Exception) {
             Timber.e(e, "Error refreshing data: ${e.message}")
         }

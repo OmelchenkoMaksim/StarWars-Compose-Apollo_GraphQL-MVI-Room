@@ -43,6 +43,15 @@ data class CharactersResponse(
     val characters: List<StarWarsCharacter>,
     val pageInfo: PageInfo
 )
+data class StarshipsResponse(
+    val starships: List<Starship>,
+    val pageInfo: PageInfo
+)
+
+data class PlanetsResponse(
+    val planets: List<Planet>,
+    val pageInfo: PageInfo
+)
 
 data class PageInfo(
     val endCursor: String?,
@@ -101,11 +110,11 @@ internal class MainActor(
         return repository.fetchCharacters(after, first)
     }
 
-    suspend fun fetchStarships(after: String? = null, first: Int = PAGE_SIZE): List<Starship> {
+    suspend fun fetchStarships(after: String? = null, first: Int = PAGE_SIZE): StarshipsResponse {
         return repository.fetchStarships(after, first)
     }
 
-    suspend fun fetchPlanets(after: String? = null, first: Int = PAGE_SIZE): List<Planet> {
+    suspend fun fetchPlanets(after: String? = null, first: Int = PAGE_SIZE): PlanetsResponse {
         return repository.fetchPlanets(after, first)
     }
 
