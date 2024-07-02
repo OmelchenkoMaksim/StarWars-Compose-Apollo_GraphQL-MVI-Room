@@ -18,6 +18,8 @@ internal class CharacterPagingSource(
                 character.copy(isFavorite = favoriteCharacters[character.id] ?: character.isFavorite)
             }
 
+            actor.updateCharactersInDatabase(updatedCharacters)
+
             LoadResult.Page(
                 data = updatedCharacters,
                 prevKey = null,

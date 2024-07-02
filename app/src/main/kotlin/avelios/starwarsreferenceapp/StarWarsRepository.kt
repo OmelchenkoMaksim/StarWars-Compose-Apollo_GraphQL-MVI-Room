@@ -1,5 +1,6 @@
 package avelios.starwarsreferenceapp
 
+import avelios.starwarsreferenceapp.MainViewModel.Companion.PAGE_SIZE
 import com.apollographql.apollo3.ApolloClient
 import com.apollographql.apollo3.api.ApolloResponse
 import com.apollographql.apollo3.api.Optional
@@ -26,6 +27,10 @@ class StarWarsRepository(
 
     suspend fun updateFavoriteStatus(characterId: String, isFavorite: Boolean) {
         characterDao.updateFavoriteStatus(characterId, isFavorite)
+    }
+
+    suspend fun updateCharacters(characters: List<StarWarsCharacter>) {
+        characterDao.insertCharacters(*characters.toTypedArray())
     }
 
     suspend fun fetchCharacterDetails(characterId: String): StarWarsCharacter? {
@@ -109,7 +114,7 @@ class StarWarsRepository(
         }
     }
 
-    suspend fun fetchCharacters(after: String? = null, first: Int = 10): CharactersResponse {
+    suspend fun fetchCharacters(after: String? = null, first: Int = PAGE_SIZE): CharactersResponse {
         return try {
             val response: ApolloResponse<GetCharactersQuery.Data> =
                 apolloClient.query(
@@ -149,7 +154,7 @@ class StarWarsRepository(
         }
     }
 
-    suspend fun fetchStarships(after: String? = null, first: Int = 10): List<Starship> {
+    suspend fun fetchStarships(after: String? = null, first: Int = PAGE_SIZE): List<Starship> {
         return try {
             val response: ApolloResponse<GetStarshipsQuery.Data> =
                 apolloClient.query(
@@ -181,7 +186,7 @@ class StarWarsRepository(
         }
     }
 
-    suspend fun fetchPlanets(after: String? = null, first: Int = 10): List<Planet> {
+    suspend fun fetchPlanets(after: String? = null, first: Int = PAGE_SIZE): List<Planet> {
         return try {
             val response: ApolloResponse<GetPlanetsQuery.Data> =
                 apolloClient.query(

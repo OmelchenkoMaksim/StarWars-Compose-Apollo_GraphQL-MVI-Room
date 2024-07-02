@@ -1,5 +1,6 @@
 package avelios.starwarsreferenceapp
 
+import avelios.starwarsreferenceapp.MainViewModel.Companion.PAGE_SIZE
 import timber.log.Timber
 
 sealed class MainState {
@@ -67,7 +68,9 @@ internal class MainActor(
             MainState.Error(e.message ?: "Unknown Error")
         }
     }
-
+    suspend fun updateCharactersInDatabase(characters: List<StarWarsCharacter>) {
+        repository.updateCharacters(characters)
+    }
     suspend fun updateFavoriteStatus(characterId: String, isFavorite: Boolean) {
         try {
             repository.updateFavoriteStatus(characterId, isFavorite)
@@ -92,15 +95,15 @@ internal class MainActor(
         return repository.fetchPlanetDetails(planetId)
     }
 
-    suspend fun fetchCharacters(after: String? = null, first: Int = 10): CharactersResponse {
+    suspend fun fetchCharacters(after: String? = null, first: Int = PAGE_SIZE): CharactersResponse {
         return repository.fetchCharacters(after, first)
     }
 
-    suspend fun fetchStarships(after: String? = null, first: Int = 10): List<Starship> {
+    suspend fun fetchStarships(after: String? = null, first: Int = PAGE_SIZE): List<Starship> {
         return repository.fetchStarships(after, first)
     }
 
-    suspend fun fetchPlanets(after: String? = null, first: Int = 10): List<Planet> {
+    suspend fun fetchPlanets(after: String? = null, first: Int = PAGE_SIZE): List<Planet> {
         return repository.fetchPlanets(after, first)
     }
 

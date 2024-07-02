@@ -228,6 +228,6 @@ internal class MainViewModel(
         private const val CHARACTER_TYPE = "character"
         private const val STARSHIP_TYPE = "starship"
         private const val PLANET_TYPE = "planet"
-        private const val PAGE_SIZE = 10
+        internal const val PAGE_SIZE = 10
     }
 }
