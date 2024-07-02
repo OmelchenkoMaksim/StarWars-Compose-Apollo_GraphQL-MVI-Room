@@ -1,7 +1,12 @@
-package avelios.starwarsreferenceapp
+package avelios.starwarsreferenceapp.mvi
 
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
+import avelios.starwarsreferenceapp.data.local.entity.Planet
+import avelios.starwarsreferenceapp.data.local.entity.StarWarsCharacter
+import avelios.starwarsreferenceapp.data.local.entity.Starship
+import avelios.starwarsreferenceapp.data.repository.StarWarsRepository
+import avelios.starwarsreferenceapp.util.NetworkManager
 import kotlinx.coroutines.flow.StateFlow
 import timber.log.Timber
 

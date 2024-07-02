@@ -1,8 +1,15 @@
-package avelios.starwarsreferenceapp
+package avelios.starwarsreferenceapp.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
+import avelios.starwarsreferenceapp.mvi.MainAction
+import avelios.starwarsreferenceapp.mvi.MainActor
+import avelios.starwarsreferenceapp.mvi.MainState
+import avelios.starwarsreferenceapp.data.local.entity.Planet
+import avelios.starwarsreferenceapp.data.local.entity.StarWarsCharacter
+import avelios.starwarsreferenceapp.data.local.entity.Starship
+import avelios.starwarsreferenceapp.util.NetworkManager
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

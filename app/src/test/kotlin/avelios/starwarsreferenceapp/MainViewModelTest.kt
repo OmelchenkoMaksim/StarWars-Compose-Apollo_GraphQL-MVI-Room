@@ -2,6 +2,11 @@ package avelios.starwarsreferenceapp
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import androidx.paging.PagingData
+import avelios.starwarsreferenceapp.data.local.entity.StarWarsCharacter
+import avelios.starwarsreferenceapp.mvi.MainActor
+import avelios.starwarsreferenceapp.mvi.MainState
+import avelios.starwarsreferenceapp.util.NetworkManager
+import avelios.starwarsreferenceapp.viewmodel.MainViewModel
 import com.nhaarman.mockitokotlin2.whenever
 import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertTrue

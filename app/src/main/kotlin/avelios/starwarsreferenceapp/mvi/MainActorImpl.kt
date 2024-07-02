@@ -1,12 +1,20 @@
-package avelios.starwarsreferenceapp
+package avelios.starwarsreferenceapp.mvi
 
-import android.nfc.tech.MifareUltralight.PAGE_SIZE
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
+import avelios.starwarsreferenceapp.data.local.entity.Planet
+import avelios.starwarsreferenceapp.data.local.entity.StarWarsCharacter
+import avelios.starwarsreferenceapp.data.local.entity.Starship
+import avelios.starwarsreferenceapp.data.repository.StarWarsRepository
+import avelios.starwarsreferenceapp.domain.model.CharactersResponse
+import avelios.starwarsreferenceapp.domain.model.PlanetsResponse
+import avelios.starwarsreferenceapp.domain.model.StarshipsResponse
 import avelios.starwarsreferenceapp.ui.theme.ThemeVariant
 import avelios.starwarsreferenceapp.ui.theme.TypographyVariant
+import avelios.starwarsreferenceapp.util.NetworkManager
+import avelios.starwarsreferenceapp.util.SettingsManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -15,69 +23,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import timber.log.Timber
-
-internal sealed class MainAction {
-    data object LoadData : MainAction()
-    data class UpdateFavoriteStatus(val characterId: String, val isFavorite: Boolean) : MainAction()
-    data class FetchCharacterDetails(val characterId: String) : MainAction()
-    data class FetchStarshipDetails(val starshipId: String) : MainAction()
-    data class FetchPlanetDetails(val planetId: String) : MainAction()
-    data class UpdateThemeAndTypography(
-        val themeVariant: ThemeVariant,
-        val typographyVariant: TypographyVariant
-    ) : MainAction()
-
-    data object RefreshData : MainAction()
-    data object ToggleTheme : MainAction()
-    data object ToggleShowOnlyFavorites : MainAction()
-}
-
-internal sealed class MainState {
-    data object Loading : MainState()
-    data class DataLoaded(
-        val characters: List<StarWarsCharacter> = emptyList(),
-        val starships: List<Starship> = emptyList(),
-        val planets: List<Planet> = emptyList(),
-        val isNetworkAvailable: Boolean = false,
-        val favoriteCharacters: Map<String, Boolean> = emptyMap(),
-        val themeVariant: ThemeVariant = ThemeVariant.MorningMystic,
-        val typographyVariant: TypographyVariant = TypographyVariant.Classic,
-        val isDarkTheme: Boolean = false,
-        val showOnlyFavorites: Boolean = false
-    ) : MainState()
-
-    data object EmptyData : MainState()
-    data class ShowToast(val message: String) : MainState()
-    data object ThemeChanged : MainState()
-    data object NoInternetAndEmptyData : MainState()
-    data class Error(val message: String) : MainState()
-}
-
-sealed class MainEffect {
-    data class ShowToast(val message: String) : MainEffect()
-    data class NavigateToDetails(val id: String, val type: String) : MainEffect()
-    data class ThemeChanged(val isDarkTheme: Boolean) : MainEffect()
-}
-
-data class CharactersResponse(
-    val characters: List<StarWarsCharacter>,
-    val pageInfo: PageInfo
-)
-
-data class StarshipsResponse(
-    val starships: List<Starship>,
-    val pageInfo: PageInfo
-)
-
-data class PlanetsResponse(
-    val planets: List<Planet>,
-    val pageInfo: PageInfo
-)
-
-data class PageInfo(
-    val endCursor: String?,
-    val hasNextPage: Boolean
-)
 
 internal class MainActorImpl(
     private val repository: StarWarsRepository,
@@ -173,7 +118,7 @@ internal class MainActorImpl(
             } else {
                 Timber.d(
                     "Data loaded successfully: ${characters.size} characters, " +
-                        "${starships.size} starships, ${planets.size} planets"
+                            "${starships.size} starships, ${planets.size} planets"
                 )
                 _state.value = MainState.DataLoaded(
                     characters, starships, planets,
@@ -352,27 +297,4 @@ internal class MainActorImpl(
     internal companion object {
         private const val PAGE_SIZE = 10
     }
-}
-
-internal interface MainActor {
-    val state: StateFlow<MainState>
-    val favoriteCharacters: StateFlow<Map<String, Boolean>>
-    val charactersPager: StateFlow<Flow<PagingData<StarWarsCharacter>>>
-    val starshipsPager: StateFlow<Flow<PagingData<Starship>>>
-    val planetsPager: StateFlow<Flow<PagingData<Planet>>>
-    val selectedCharacter: StateFlow<StarWarsCharacter?>
-    val selectedStarship: StateFlow<Starship?>
-    val selectedPlanet: StateFlow<Planet?>
-    val isLoading: StateFlow<Boolean>
-
-    suspend fun handleIntent(intent: MainAction)
-    suspend fun refreshData()
-
-    suspend fun fetchStarships(after: String? = null, first: Int = PAGE_SIZE): StarshipsResponse
-    suspend fun fetchPlanets(after: String? = null, first: Int = PAGE_SIZE): PlanetsResponse
-    suspend fun fetchCharacters(after: String? = null, first: Int = PAGE_SIZE): CharactersResponse
-
-    suspend fun updateCharactersInDatabase(characters: List<StarWarsCharacter>)
-    suspend fun updateStarshipsInDatabase(starships: List<Starship>)
-    suspend fun updatePlanetsInDatabase(planets: List<Planet>)
 }

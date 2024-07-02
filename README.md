@@ -1,6 +1,7 @@
 Star Wars Reference App
 
-This project is a test assignment for Avelios Medical, written by Maksim Omel'chenko in 2024. GitHub Profile
+This project is a test assignment for Avelios Medical, written by Maksim Omel'chenko in 2024. 
+https://github.com/OmelchenkoMaksim
 
 It aims to create a reference application for Star Wars characters, starships, and planets.
 The app leverages modern Android development tools and
@@ -57,21 +58,7 @@ Network Connectivity Listener
 
 The app includes a network connectivity listener to show a toast message when the internet connection is established or lost.
 It also triggers data fetch from the server when connectivity is restored and no data is available locally.
-Paging
 
-The app uses Paging 3 to efficiently load and display data from the network and local database.
-This is implemented in CharacterPagingSource,
-StarshipPagingSource, and PlanetPagingSource.
-Testing
-
-    Unit Testing: Uses JUnit, Mockito, MockK, and Coroutines Test for unit testing ViewModel and Repository.
-    Instrumentation Testing: Uses AndroidX Test libraries for UI tests.
-
-Contribution
-
-Since this is a test assignment, contributions are not expected. However, if you'd like to suggest improvements
-or report issues, feel free to open an
-issue or a pull request.
 License
 
 This project is licensed under the MIT License.

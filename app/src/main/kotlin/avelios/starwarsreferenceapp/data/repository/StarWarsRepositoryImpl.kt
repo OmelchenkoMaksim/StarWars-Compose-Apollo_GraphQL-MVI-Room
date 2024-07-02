@@ -1,6 +1,21 @@
-package avelios.starwarsreferenceapp
+package avelios.starwarsreferenceapp.data.repository
 
-import android.nfc.tech.MifareUltralight.PAGE_SIZE
+import avelios.starwarsreferenceapp.GetCharacterDetailsQuery
+import avelios.starwarsreferenceapp.GetCharactersQuery
+import avelios.starwarsreferenceapp.GetPlanetDetailsQuery
+import avelios.starwarsreferenceapp.GetPlanetsQuery
+import avelios.starwarsreferenceapp.GetStarshipDetailsQuery
+import avelios.starwarsreferenceapp.GetStarshipsQuery
+import avelios.starwarsreferenceapp.data.local.dao.CharacterDao
+import avelios.starwarsreferenceapp.data.local.dao.PlanetDao
+import avelios.starwarsreferenceapp.data.local.dao.StarshipDao
+import avelios.starwarsreferenceapp.data.local.entity.Planet
+import avelios.starwarsreferenceapp.data.local.entity.StarWarsCharacter
+import avelios.starwarsreferenceapp.data.local.entity.Starship
+import avelios.starwarsreferenceapp.domain.model.CharactersResponse
+import avelios.starwarsreferenceapp.domain.model.PageInfo
+import avelios.starwarsreferenceapp.domain.model.PlanetsResponse
+import avelios.starwarsreferenceapp.domain.model.StarshipsResponse
 import com.apollographql.apollo3.ApolloClient
 import com.apollographql.apollo3.api.ApolloResponse
 import com.apollographql.apollo3.api.Optional
@@ -250,21 +265,4 @@ class StarWarsRepositoryImpl(
         const val ZERO_FLOAT = 0f
         const val ZERO_DOUBLE = 0.0
     }
-}
-
-interface StarWarsRepository {
-    suspend fun getAllCharacters(): List<StarWarsCharacter>
-    suspend fun getAllStarships(): List<Starship>
-    suspend fun getAllPlanets(): List<Planet>
-    suspend fun updateFavoriteStatus(characterId: String, isFavorite: Boolean)
-    suspend fun updateCharacters(characters: List<StarWarsCharacter>)
-    suspend fun updateStarships(starships: List<Starship>)
-    suspend fun updatePlanets(planets: List<Planet>)
-    suspend fun fetchCharacterDetails(characterId: String): StarWarsCharacter?
-    suspend fun fetchStarshipDetails(starshipId: String): Starship?
-    suspend fun fetchPlanetDetails(planetId: String): Planet?
-    suspend fun fetchCharacters(after: String? = null, first: Int = PAGE_SIZE): CharactersResponse
-    suspend fun fetchStarships(after: String? = null, first: Int = PAGE_SIZE): StarshipsResponse
-    suspend fun fetchPlanets(after: String? = null, first: Int = PAGE_SIZE): PlanetsResponse
-    suspend fun refreshData()
 }

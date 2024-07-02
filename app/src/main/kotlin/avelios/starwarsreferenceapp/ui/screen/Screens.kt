@@ -1,82 +1,59 @@
-package avelios.starwarsreferenceapp
+package avelios.starwarsreferenceapp.ui.screen
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColor
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.paging.compose.LazyPagingItems
-import avelios.starwarsreferenceapp.CharacterDetailsScreenConstants.ADD_TO_FAVORITES
-import avelios.starwarsreferenceapp.CharacterDetailsScreenConstants.BIRTH_YEAR
-import avelios.starwarsreferenceapp.CharacterDetailsScreenConstants.EYE_COLOR
-import avelios.starwarsreferenceapp.CharacterDetailsScreenConstants.FILMS_COUNT
-import avelios.starwarsreferenceapp.CharacterDetailsScreenConstants.GENDER
-import avelios.starwarsreferenceapp.CharacterDetailsScreenConstants.HAIR_COLOR
-import avelios.starwarsreferenceapp.CharacterDetailsScreenConstants.HEIGHT
-import avelios.starwarsreferenceapp.CharacterDetailsScreenConstants.HOMEWORLD
-import avelios.starwarsreferenceapp.CharacterDetailsScreenConstants.MASS
-import avelios.starwarsreferenceapp.CharacterDetailsScreenConstants.NAME_CHARACTER
-import avelios.starwarsreferenceapp.CharacterDetailsScreenConstants.REMOVE_FROM_FAVORITES
-import avelios.starwarsreferenceapp.CharacterDetailsScreenConstants.SKIN_COLOR
-import avelios.starwarsreferenceapp.PlanetDetailsScreenConstants.CLIMATES
-import avelios.starwarsreferenceapp.PlanetDetailsScreenConstants.DIAMETER
-import avelios.starwarsreferenceapp.PlanetDetailsScreenConstants.GRAVITY
-import avelios.starwarsreferenceapp.PlanetDetailsScreenConstants.NAME_PLANET
-import avelios.starwarsreferenceapp.PlanetDetailsScreenConstants.ORBITAL_PERIOD
-import avelios.starwarsreferenceapp.PlanetDetailsScreenConstants.PLANET
-import avelios.starwarsreferenceapp.PlanetDetailsScreenConstants.POPULATION
-import avelios.starwarsreferenceapp.PlanetDetailsScreenConstants.ROTATION_PERIOD
-import avelios.starwarsreferenceapp.PlanetDetailsScreenConstants.SURFACE_WATER
-import avelios.starwarsreferenceapp.PlanetDetailsScreenConstants.TERRAINS
-import avelios.starwarsreferenceapp.StarshipDetailsScreenConstants.CREW
-import avelios.starwarsreferenceapp.StarshipDetailsScreenConstants.HYPERDRIVE_RATING
-import avelios.starwarsreferenceapp.StarshipDetailsScreenConstants.LENGTH
-import avelios.starwarsreferenceapp.StarshipDetailsScreenConstants.MANUFACTURERS
-import avelios.starwarsreferenceapp.StarshipDetailsScreenConstants.MAX_ATMOSPHERING_SPEED
-import avelios.starwarsreferenceapp.StarshipDetailsScreenConstants.MODEL
-import avelios.starwarsreferenceapp.StarshipDetailsScreenConstants.NAME_STARSHIP
-import avelios.starwarsreferenceapp.StarshipDetailsScreenConstants.PASSENGERS
-import avelios.starwarsreferenceapp.StarshipDetailsScreenConstants.STARSHIP
-import avelios.starwarsreferenceapp.StarshipDetailsScreenConstants.STARSHIP_CLASS
+import avelios.starwarsreferenceapp.data.local.entity.Planet
+import avelios.starwarsreferenceapp.data.local.entity.StarWarsCharacter
+import avelios.starwarsreferenceapp.data.local.entity.Starship
+import avelios.starwarsreferenceapp.ui.component.CharacterItem
+import avelios.starwarsreferenceapp.ui.component.LoadingIndicator
+import avelios.starwarsreferenceapp.ui.component.PlanetItem
+import avelios.starwarsreferenceapp.ui.component.StarshipItem
+import avelios.starwarsreferenceapp.ui.screen.CharacterDetailsScreenConstants.BIRTH_YEAR
+import avelios.starwarsreferenceapp.ui.screen.CharacterDetailsScreenConstants.EYE_COLOR
+import avelios.starwarsreferenceapp.ui.screen.CharacterDetailsScreenConstants.GENDER
+import avelios.starwarsreferenceapp.ui.screen.CharacterDetailsScreenConstants.HAIR_COLOR
+import avelios.starwarsreferenceapp.ui.screen.CharacterDetailsScreenConstants.HEIGHT
+import avelios.starwarsreferenceapp.ui.screen.CharacterDetailsScreenConstants.HOMEWORLD
+import avelios.starwarsreferenceapp.ui.screen.CharacterDetailsScreenConstants.MASS
+import avelios.starwarsreferenceapp.ui.screen.CharacterDetailsScreenConstants.NAME_CHARACTER
+import avelios.starwarsreferenceapp.ui.screen.CharacterDetailsScreenConstants.SKIN_COLOR
+import avelios.starwarsreferenceapp.ui.screen.PlanetDetailsScreenConstants.CLIMATES
+import avelios.starwarsreferenceapp.ui.screen.PlanetDetailsScreenConstants.DIAMETER
+import avelios.starwarsreferenceapp.ui.screen.PlanetDetailsScreenConstants.GRAVITY
+import avelios.starwarsreferenceapp.ui.screen.PlanetDetailsScreenConstants.NAME_PLANET
+import avelios.starwarsreferenceapp.ui.screen.PlanetDetailsScreenConstants.ORBITAL_PERIOD
+import avelios.starwarsreferenceapp.ui.screen.PlanetDetailsScreenConstants.POPULATION
+import avelios.starwarsreferenceapp.ui.screen.PlanetDetailsScreenConstants.ROTATION_PERIOD
+import avelios.starwarsreferenceapp.ui.screen.PlanetDetailsScreenConstants.SURFACE_WATER
+import avelios.starwarsreferenceapp.ui.screen.PlanetDetailsScreenConstants.TERRAINS
+import avelios.starwarsreferenceapp.ui.screen.StarshipDetailsScreenConstants.CREW
+import avelios.starwarsreferenceapp.ui.screen.StarshipDetailsScreenConstants.HYPERDRIVE_RATING
+import avelios.starwarsreferenceapp.ui.screen.StarshipDetailsScreenConstants.LENGTH
+import avelios.starwarsreferenceapp.ui.screen.StarshipDetailsScreenConstants.MANUFACTURERS
+import avelios.starwarsreferenceapp.ui.screen.StarshipDetailsScreenConstants.MAX_ATMOSPHERING_SPEED
+import avelios.starwarsreferenceapp.ui.screen.StarshipDetailsScreenConstants.MODEL
+import avelios.starwarsreferenceapp.ui.screen.StarshipDetailsScreenConstants.NAME_STARSHIP
+import avelios.starwarsreferenceapp.ui.screen.StarshipDetailsScreenConstants.PASSENGERS
+import avelios.starwarsreferenceapp.ui.screen.StarshipDetailsScreenConstants.STARSHIP_CLASS
 
 @Composable
 fun CharactersScreen(
@@ -282,88 +259,6 @@ fun PlanetDetailsScreen(
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-fun CharacterItem(
-    character: StarWarsCharacter,
-    isFavorite: Boolean,
-    onClick: () -> Unit,
-    onFavoriteClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(12.dp)
-            .clickable(onClick = onClick),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column {
-            Text(text = "$NAME_CHARACTER${character.name}", style = typography.bodyMedium)
-            Text(text = "$FILMS_COUNT${character.filmsCount}", style = typography.bodyLarge)
-        }
-        IconButton(onClick = onFavoriteClick) {
-            Icon(
-                imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.Star,
-                contentDescription = if (isFavorite) REMOVE_FROM_FAVORITES else ADD_TO_FAVORITES
-            )
-        }
-    }
-}
-
-@Composable
-fun StarshipItem(starship: Starship, onClick: () -> Unit) {
-    Column(modifier = Modifier.padding(12.dp).clickable(onClick = onClick)) {
-        Text(text = "$STARSHIP${starship.name}", style = typography.bodyMedium)
-    }
-}
-
-@Composable
-fun PlanetItem(planet: Planet, onClick: () -> Unit) {
-    Column(modifier = Modifier.padding(12.dp).clickable(onClick = onClick)) {
-        Text(text = "$PLANET${planet.name}", style = typography.bodyMedium)
-    }
-}
-
-@Composable
-fun LoadingIndicator(
-    modifier: Modifier = Modifier,
-    size: Dp = 50.dp,
-    strokeWidth: Dp = 4.dp
-) {
-    val rainbowColors = listOf(Color.Red, Color.Yellow, Color.Green, Color.Blue, Color.Cyan, Color.Magenta)
-    val infiniteTransition = rememberInfiniteTransition(label = "")
-    val color by infiniteTransition.animateColor(
-        initialValue = rainbowColors.first(),
-        targetValue = rainbowColors.last(),
-        animationSpec = infiniteRepeatable(tween(TWEEN_ANIMATION_DURATION), repeatMode = RepeatMode.Reverse), label = ""
-    )
-
-    AnimatedVisibility(
-        visible = true,
-        enter = fadeIn(animationSpec = tween(TWEEN_ANIMATION_DURATION)),
-        exit = fadeOut(animationSpec = tween(TWEEN_ANIMATION_DURATION))
-    ) {
-        Box(
-            modifier = modifier
-                .background(Color.White.copy(alpha = 0.6f))
-                .fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            CircularProgressIndicator(
-                color = color,
-                strokeWidth = strokeWidth,
-                modifier = Modifier
-                    .size(size)
-                    .border(
-                        width = 2.dp,
-                        color = color,
-                        shape = CircleShape
-                    )
-            )
         }
     }
 }

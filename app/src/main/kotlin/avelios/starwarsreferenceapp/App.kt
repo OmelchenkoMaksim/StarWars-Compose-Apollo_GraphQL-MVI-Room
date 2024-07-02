@@ -9,16 +9,21 @@ import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.widget.Toast
 import androidx.room.Room
-import avelios.starwarsreferenceapp.ui.theme.ThemeVariant
-import avelios.starwarsreferenceapp.ui.theme.TypographyVariant
+import avelios.starwarsreferenceapp.data.local.AppDatabase
+import avelios.starwarsreferenceapp.data.repository.StarWarsRepository
+import avelios.starwarsreferenceapp.data.repository.StarWarsRepositoryImpl
+import avelios.starwarsreferenceapp.mvi.MainAction
+import avelios.starwarsreferenceapp.mvi.MainActor
+import avelios.starwarsreferenceapp.mvi.MainActorImpl
+import avelios.starwarsreferenceapp.util.NetworkManager
+import avelios.starwarsreferenceapp.util.NetworkManagerImpl
+import avelios.starwarsreferenceapp.util.SettingsManager
+import avelios.starwarsreferenceapp.viewmodel.MainViewModel
 import com.apollographql.apollo3.ApolloClient
 import com.apollographql.apollo3.network.okHttpClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -121,93 +126,6 @@ internal class App : Application() {
     }
 }
 
-internal class SettingsManager(private val sharedPreferences: SharedPreferences) {
-
-    fun saveThemeVariant(themeVariant: ThemeVariant) {
-        sharedPreferences.edit().putString(THEME_VARIANT, themeVariant.name).apply()
-    }
-
-    fun loadThemeVariant(): ThemeVariant {
-        val themeVariantName = sharedPreferences.getString(THEME_VARIANT, ThemeVariant.MorningMystic.name)
-        return ThemeVariant.valueOf(themeVariantName ?: ThemeVariant.MorningMystic.name)
-    }
-
-    fun saveTypographyVariant(typographyVariant: TypographyVariant) {
-        sharedPreferences.edit().putString(TYPOGRAPHY_VARIANT, typographyVariant.name).apply()
-    }
-
-    fun loadTypographyVariant(): TypographyVariant {
-        val typographyVariantName = sharedPreferences.getString(TYPOGRAPHY_VARIANT, TypographyVariant.Classic.name)
-        return TypographyVariant.valueOf(typographyVariantName ?: TypographyVariant.Classic.name)
-    }
-
-    fun setDarkMode(isDarkMode: Boolean) {
-        sharedPreferences.edit().putBoolean(IS_DARK_MODE, isDarkMode).apply()
-    }
-
-    fun isDarkMode(): Boolean {
-        return sharedPreferences.getBoolean(IS_DARK_MODE, false)
-    }
-
-    internal companion object PreferencesConstants {
-        const val THEME_VARIANT = "theme_variant"
-        const val TYPOGRAPHY_VARIANT = "typography_variant"
-        const val IS_DARK_MODE = "isDarkMode"
-    }
-}
-
-class NetworkManagerImpl(
-    private val connectivityManager: ConnectivityManager,
-    private val context: Context
-) : NetworkManager {
-    private val _isNetworkAvailable = MutableStateFlow(false)
-    override val isNetworkAvailable: StateFlow<Boolean> = _isNetworkAvailable.asStateFlow()
-
-    private val networkCallback = object : ConnectivityManager.NetworkCallback() {
-        override fun onAvailable(network: Network) {
-            _isNetworkAvailable.value = true
-            showToast(INTERNET_AVAILABLE)
-        }
-
-        override fun onLost(network: Network) {
-            _isNetworkAvailable.value = false
-            showToast(INTERNET_LOST)
-        }
-
-        override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
-            _isNetworkAvailable.value = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-            if (_isNetworkAvailable.value) showToast(INTERNET_AVAILABLE)
-            else showToast(INTERNET_LOST)
-        }
-    }
-
-    init {
-        val networkRequest = NetworkRequest.Builder()
-            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-            .build()
-        connectivityManager.registerNetworkCallback(networkRequest, networkCallback)
-
-        _isNetworkAvailable.value = isNetworkCurrentlyAvailable()
-        if (_isNetworkAvailable.value) showToast(INTERNET_AVAILABLE)
-        else showToast(INTERNET_LOST)
-    }
-
-    private fun isNetworkCurrentlyAvailable(): Boolean {
-        val activeNetwork = connectivityManager.activeNetwork
-        val capabilities = connectivityManager.getNetworkCapabilities(activeNetwork)
-        return capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
-    }
-
-    private fun showToast(message: String) {
-        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-    }
-
-    private companion object {
-        const val INTERNET_AVAILABLE = "Internet Connection Established!"
-        const val INTERNET_LOST = "Lost Internet Connection!"
-    }
-}
-
 internal object GlobalToast {
     private var toast: Toast? = null
 
@@ -218,6 +136,3 @@ internal object GlobalToast {
     }
 }
 
-interface NetworkManager {
-    val isNetworkAvailable: StateFlow<Boolean>
-}

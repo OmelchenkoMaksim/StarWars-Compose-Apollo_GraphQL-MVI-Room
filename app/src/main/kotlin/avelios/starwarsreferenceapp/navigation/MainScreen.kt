@@ -1,4 +1,4 @@
-package avelios.starwarsreferenceapp
+package avelios.starwarsreferenceapp.navigation
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -13,8 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
@@ -42,7 +40,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -54,33 +51,45 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.paging.compose.collectAsLazyPagingItems
-import avelios.starwarsreferenceapp.MainScreenConstants.EMPTY_DATA_WITHOUT_INTERNET_MESSAGE
-import avelios.starwarsreferenceapp.MainScreenConstants.NO_INTERNET_AND_EMPTY_DATA_MESSAGE
-import avelios.starwarsreferenceapp.MainScreenConstants.OFFLINE_MODE_MESSAGE
-import avelios.starwarsreferenceapp.NavigationConstants.APP_TITLE
-import avelios.starwarsreferenceapp.NavigationConstants.BACK
-import avelios.starwarsreferenceapp.NavigationConstants.CHARACTER_DETAILS_ROUTE
-import avelios.starwarsreferenceapp.NavigationConstants.CHARACTER_DETAILS_SLASH
-import avelios.starwarsreferenceapp.NavigationConstants.CHARACTER_ID_KEY
-import avelios.starwarsreferenceapp.NavigationConstants.CHARACTER_TITLE
-import avelios.starwarsreferenceapp.NavigationConstants.OK
-import avelios.starwarsreferenceapp.NavigationConstants.PLANET_DETAILS_ROUTE
-import avelios.starwarsreferenceapp.NavigationConstants.PLANET_DETAILS_SLASH
-import avelios.starwarsreferenceapp.NavigationConstants.PLANET_ID_KEY
-import avelios.starwarsreferenceapp.NavigationConstants.PLANET_TITLE
-import avelios.starwarsreferenceapp.NavigationConstants.SELECT_THEME
-import avelios.starwarsreferenceapp.NavigationConstants.SELECT_TYPOGRAPHY
-import avelios.starwarsreferenceapp.NavigationConstants.SETTINGS
-import avelios.starwarsreferenceapp.NavigationConstants.STARSHIP_DETAILS_ROUTE
-import avelios.starwarsreferenceapp.NavigationConstants.STARSHIP_DETAILS_SLASH
-import avelios.starwarsreferenceapp.NavigationConstants.STARSHIP_ID_KEY
-import avelios.starwarsreferenceapp.NavigationConstants.STARSHIP_TITLE
-import avelios.starwarsreferenceapp.NavigationConstants.THEME_MODE_CHANGED
-import avelios.starwarsreferenceapp.NavigationConstants.TOGGLE_FAVORITES
-import avelios.starwarsreferenceapp.NavigationConstants.TOGGLE_THEME
+import avelios.starwarsreferenceapp.GlobalToast
+import avelios.starwarsreferenceapp.R
+import avelios.starwarsreferenceapp.mvi.MainAction
+import avelios.starwarsreferenceapp.mvi.MainState
+import avelios.starwarsreferenceapp.navigation.MainScreenConstants.EMPTY_DATA_WITHOUT_INTERNET_MESSAGE
+import avelios.starwarsreferenceapp.navigation.MainScreenConstants.NO_INTERNET_AND_EMPTY_DATA_MESSAGE
+import avelios.starwarsreferenceapp.navigation.MainScreenConstants.OFFLINE_MODE_MESSAGE
+import avelios.starwarsreferenceapp.navigation.NavigationConstants.APP_TITLE
+import avelios.starwarsreferenceapp.navigation.NavigationConstants.BACK
+import avelios.starwarsreferenceapp.navigation.NavigationConstants.CHARACTER_DETAILS_ROUTE
+import avelios.starwarsreferenceapp.navigation.NavigationConstants.CHARACTER_DETAILS_SLASH
+import avelios.starwarsreferenceapp.navigation.NavigationConstants.CHARACTER_ID_KEY
+import avelios.starwarsreferenceapp.navigation.NavigationConstants.CHARACTER_TITLE
+import avelios.starwarsreferenceapp.navigation.NavigationConstants.OK
+import avelios.starwarsreferenceapp.navigation.NavigationConstants.PLANET_DETAILS_ROUTE
+import avelios.starwarsreferenceapp.navigation.NavigationConstants.PLANET_DETAILS_SLASH
+import avelios.starwarsreferenceapp.navigation.NavigationConstants.PLANET_ID_KEY
+import avelios.starwarsreferenceapp.navigation.NavigationConstants.PLANET_TITLE
+import avelios.starwarsreferenceapp.navigation.NavigationConstants.SELECT_THEME
+import avelios.starwarsreferenceapp.navigation.NavigationConstants.SELECT_TYPOGRAPHY
+import avelios.starwarsreferenceapp.navigation.NavigationConstants.SETTINGS
+import avelios.starwarsreferenceapp.navigation.NavigationConstants.STARSHIP_DETAILS_ROUTE
+import avelios.starwarsreferenceapp.navigation.NavigationConstants.STARSHIP_DETAILS_SLASH
+import avelios.starwarsreferenceapp.navigation.NavigationConstants.STARSHIP_ID_KEY
+import avelios.starwarsreferenceapp.navigation.NavigationConstants.STARSHIP_TITLE
+import avelios.starwarsreferenceapp.navigation.NavigationConstants.THEME_MODE_CHANGED
+import avelios.starwarsreferenceapp.navigation.NavigationConstants.TOGGLE_FAVORITES
+import avelios.starwarsreferenceapp.navigation.NavigationConstants.TOGGLE_THEME
+import avelios.starwarsreferenceapp.ui.component.LoadingIndicator
+import avelios.starwarsreferenceapp.ui.screen.CharacterDetailsScreen
+import avelios.starwarsreferenceapp.ui.screen.CharactersScreen
+import avelios.starwarsreferenceapp.ui.screen.PlanetDetailsScreen
+import avelios.starwarsreferenceapp.ui.screen.PlanetsScreen
+import avelios.starwarsreferenceapp.ui.screen.StarshipDetailsScreen
+import avelios.starwarsreferenceapp.ui.screen.StarshipsScreen
 import avelios.starwarsreferenceapp.ui.theme.StarWarsReferenceAppTheme
 import avelios.starwarsreferenceapp.ui.theme.ThemeVariant
 import avelios.starwarsreferenceapp.ui.theme.TypographyVariant
+import avelios.starwarsreferenceapp.viewmodel.MainViewModel
 import timber.log.Timber
 
 @Composable
@@ -439,21 +448,6 @@ fun BottomNavigationBar(navController: NavHostController) {
 fun currentRoute(navController: NavHostController): String? {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     return navBackStackEntry?.destination?.route
-}
-
-sealed class NavigationItem(var route: String, var icon: ImageVector, var title: String) {
-    data object Characters : NavigationItem(CHARACTERS_ROUTE, Icons.Default.Person, CHARACTERS_TITLE)
-    data object Starships : NavigationItem(STARSHIPS_ROUTE, Icons.Default.Star, STARSHIPS_TITLE)
-    data object Planets : NavigationItem(PLANETS_ROUTE, Icons.Default.Place, PLANETS_TITLE)
-    private companion object {
-        const val CHARACTERS_ROUTE = "characters"
-        const val STARSHIPS_ROUTE = "starships"
-        const val PLANETS_ROUTE = "planets"
-
-        const val CHARACTERS_TITLE = "Characters"
-        const val STARSHIPS_TITLE = "Starships"
-        const val PLANETS_TITLE = "Planets"
-    }
 }
 
 object NavigationConstants {

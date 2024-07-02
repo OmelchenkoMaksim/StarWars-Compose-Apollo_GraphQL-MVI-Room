@@ -1,5 +1,12 @@
 package avelios.starwarsreferenceapp
 
+import avelios.starwarsreferenceapp.data.local.dao.CharacterDao
+import avelios.starwarsreferenceapp.data.local.dao.PlanetDao
+import avelios.starwarsreferenceapp.data.local.dao.StarshipDao
+import avelios.starwarsreferenceapp.data.local.entity.Planet
+import avelios.starwarsreferenceapp.data.local.entity.StarWarsCharacter
+import avelios.starwarsreferenceapp.data.local.entity.Starship
+import avelios.starwarsreferenceapp.data.repository.StarWarsRepositoryImpl
 import com.apollographql.apollo3.ApolloClient
 import io.mockk.coEvery
 import io.mockk.coVerify
