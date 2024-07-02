@@ -108,7 +108,9 @@ internal fun MainScreen(viewModel: MainViewModel) {
                         themeVariant = themeVariant,
                         typographyVariant = typographyVariant
                     ) { newThemeVariant, newTypographyVariant ->
-                        viewModel.handleIntent(MainAction.UpdateThemeAndTypography(newThemeVariant, newTypographyVariant))
+                        viewModel.handleIntent(
+                            MainAction.UpdateThemeAndTypography(newThemeVariant, newTypographyVariant)
+                        )
                         themeVariant.value = newThemeVariant
                         typographyVariant.value = newTypographyVariant
                     }
