@@ -43,6 +43,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -53,6 +54,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.paging.compose.collectAsLazyPagingItems
+import avelios.starwarsreferenceapp.MainScreenConstants.EMPTY_DATA_WITHOUT_INTERNET_MESSAGE
+import avelios.starwarsreferenceapp.MainScreenConstants.NO_INTERNET_AND_EMPTY_DATA_MESSAGE
 import avelios.starwarsreferenceapp.MainScreenConstants.OFFLINE_MODE_MESSAGE
 import avelios.starwarsreferenceapp.NavigationConstants.APP_TITLE
 import avelios.starwarsreferenceapp.NavigationConstants.BACK
@@ -72,6 +75,7 @@ import avelios.starwarsreferenceapp.NavigationConstants.STARSHIP_DETAILS_ROUTE
 import avelios.starwarsreferenceapp.NavigationConstants.STARSHIP_DETAILS_SLASH
 import avelios.starwarsreferenceapp.NavigationConstants.STARSHIP_ID_KEY
 import avelios.starwarsreferenceapp.NavigationConstants.STARSHIP_TITLE
+import avelios.starwarsreferenceapp.NavigationConstants.THEME_MODE_CHANGED
 import avelios.starwarsreferenceapp.NavigationConstants.TOGGLE_FAVORITES
 import avelios.starwarsreferenceapp.NavigationConstants.TOGGLE_THEME
 import avelios.starwarsreferenceapp.ui.theme.StarWarsReferenceAppTheme
@@ -114,20 +118,37 @@ internal fun MainScreen(viewModel: MainViewModel) {
         }
 
         is MainState.Error -> {
-            Box(modifier = Modifier.fillMaxSize()) {
+            Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
                 Text(text = (state as MainState.Error).message, color = Color.Red)
             }
             Timber.e("Error state in MainScreen: ${(state as MainState.Error).message}")
         }
 
-        else -> Timber.w("Unexpected state in MainScreen: $state")
+        MainState.EmptyData -> {
+            Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
+                Text(text = EMPTY_DATA_WITHOUT_INTERNET_MESSAGE, color = Color.Gray)
+            }
+        }
+
+        MainState.NoInternetAndEmptyData -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(text = NO_INTERNET_AND_EMPTY_DATA_MESSAGE, color = Color.Gray)
+            }
+        }
+
+        is MainState.ShowToast -> {
+            GlobalToast.show(LocalContext.current, (state as MainState.ShowToast).message)
+        }
+
+        MainState.ThemeChanged -> {
+            GlobalToast.show(LocalContext.current, "Theme mode changed")
+        }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun DataScreen(viewModel: MainViewModel, showSettingsDialog: MutableState<Boolean>) {
-    val state by viewModel.state.collectAsState()
     val isNetworkAvailable by viewModel.isNetworkAvailable.collectAsState()
 
     val navController = rememberNavController()
@@ -159,14 +180,22 @@ internal fun DataScreen(viewModel: MainViewModel, showSettingsDialog: MutableSta
                 },
                 actions = {
                     if (currentBackStackEntry?.destination?.route == NavigationItem.Characters.route) {
-                        IconButton(onClick = { viewModel.handleIntent(MainAction.ToggleShowOnlyFavorites) }) {
+
+                        IconButton(onClick = {
+                            viewModel.handleIntent(MainAction.ToggleShowOnlyFavorites)
+                        }) {
                             Icon(
                                 imageVector = if (showOnlyFavorites.value) Icons.Default.Star else Icons.Default.Favorite,
                                 contentDescription = TOGGLE_FAVORITES
                             )
                         }
                     }
-                    IconButton(onClick = { viewModel.handleIntent(MainAction.ToggleTheme) }) {
+                    val context = LocalContext.current
+                    IconButton(onClick = {
+
+                        GlobalToast.show(context, THEME_MODE_CHANGED)
+                        viewModel.handleIntent(MainAction.ToggleTheme)
+                    }) {
                         Image(
                             painter = painterResource(id = R.drawable.ic_day_night),
                             contentDescription = TOGGLE_THEME
@@ -454,7 +483,6 @@ object NavigationConstants {
 }
 
 object MainScreenConstants {
-    const val EMPTY_DATA_WITH_INTERNET_MESSAGE = "The lists are empty. Try refreshing the data."
     const val EMPTY_DATA_WITHOUT_INTERNET_MESSAGE = "No internet connection. The lists are empty."
     const val NO_INTERNET_AND_EMPTY_DATA_MESSAGE = "No internet connection and the local database is empty."
     const val OFFLINE_MODE_MESSAGE = "Offline mode: Please check your internet connection"

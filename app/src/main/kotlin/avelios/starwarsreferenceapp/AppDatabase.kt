@@ -92,6 +92,9 @@ interface StarshipDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertStarships(vararg starships: Starship)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertStarships(starships: List<Starship>)
 }
 
 @Dao
@@ -104,6 +107,9 @@ interface PlanetDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPlanets(vararg planets: Planet)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertPlanets(planets: List<Planet>)
 }
 
 class Converters {

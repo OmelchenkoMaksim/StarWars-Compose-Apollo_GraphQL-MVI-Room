@@ -10,9 +10,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import timber.log.Timber
 
 internal sealed class MainAction {
@@ -46,6 +46,8 @@ internal sealed class MainState {
     ) : MainState()
 
     object EmptyData : MainState()
+    data class ShowToast(val message: String) : MainState()
+    object ThemeChanged : MainState()
     object NoInternetAndEmptyData : MainState()
     data class Error(val message: String) : MainState()
 }
@@ -86,12 +88,9 @@ internal class MainActor(
     val state: StateFlow<MainState> = _state.asStateFlow()
 
     private val _effect = MutableSharedFlow<MainEffect>()
-    val effect: SharedFlow<MainEffect> = _effect
 
     private val _favoriteCharacters = MutableStateFlow<Map<String, Boolean>>(emptyMap())
     val favoriteCharacters: StateFlow<Map<String, Boolean>> = _favoriteCharacters.asStateFlow()
-
-    val isNetworkAvailable: StateFlow<Boolean> = networkManager.isNetworkAvailable
 
     private val _charactersPager = MutableStateFlow(createCharactersPager())
     val charactersPager: StateFlow<Flow<PagingData<StarWarsCharacter>>> = _charactersPager
@@ -117,6 +116,7 @@ internal class MainActor(
     init {
         _state.value = MainState.Loading
         Timber.d("MainActor initialized with Loading state")
+        observeNetworkChanges()
     }
 
     suspend fun handleIntent(intent: MainAction) {
@@ -129,7 +129,10 @@ internal class MainActor(
             is MainAction.RefreshData -> refreshData()
             is MainAction.ToggleTheme -> toggleTheme()
             is MainAction.ToggleShowOnlyFavorites -> toggleShowOnlyFavorites()
-            is MainAction.UpdateThemeAndTypography -> updateThemeAndTypography(intent.themeVariant, intent.typographyVariant)
+            is MainAction.UpdateThemeAndTypography -> updateThemeAndTypography(
+                intent.themeVariant,
+                intent.typographyVariant
+            )
         }
     }
 
@@ -144,6 +147,7 @@ internal class MainActor(
                 themeVariant = newThemeVariant,
                 typographyVariant = newTypographyVariant
             )
+
             else -> _state.value
         }
         _effect.emit(MainEffect.ThemeChanged(settingsManager.isDarkMode()))
@@ -163,6 +167,7 @@ internal class MainActor(
                 } else {
                     Timber.d("Local data is empty and no network, showing NoInternetAndEmptyData state")
                     _state.value = MainState.NoInternetAndEmptyData
+                    _effect.emit(MainEffect.ShowToast("No internet connection and no data available"))
                 }
             } else {
                 Timber.d("Data loaded successfully: ${characters.size} characters, ${starships.size} starships, ${planets.size} planets")
@@ -179,6 +184,23 @@ internal class MainActor(
             _state.value = MainState.Error(e.message ?: "Unknown Error")
         } finally {
             _isLoading.value = false
+        }
+    }
+
+    private fun observeNetworkChanges() {
+        coroutineScope.launch {
+            networkManager.isNetworkAvailable.collect { isAvailable ->
+                if (isAvailable) {
+                    Timber.d("Network connection restored. Refreshing data...")
+                    refreshData()
+                } else {
+                    Timber.d("Network connection lost.")
+                    _state.value = when (val currentState = _state.value) {
+                        is MainState.DataLoaded -> currentState.copy(isNetworkAvailable = false)
+                        else -> currentState
+                    }
+                }
+            }
         }
     }
 
@@ -200,9 +222,9 @@ internal class MainActor(
         try {
             val character = repository.fetchCharacterDetails(characterId)
             _selectedCharacter.value = character
-            character?.let {
-                _effect.emit(MainEffect.NavigateToDetails(it.id, "character"))
-            } ?: run {
+            if (character != null) {
+                _effect.emit(MainEffect.NavigateToDetails(character.id, "character"))
+            } else {
                 _effect.emit(MainEffect.ShowToast("Character not found"))
             }
         } catch (e: Exception) {
@@ -249,7 +271,7 @@ internal class MainActor(
         }
     }
 
-    private suspend fun refreshData() {
+    internal suspend fun refreshData() {
         try {
             Timber.d("Refreshing data started")
             repository.refreshData()
@@ -271,7 +293,7 @@ internal class MainActor(
         _effect.emit(MainEffect.ThemeChanged(!isDarkMode))
     }
 
-    private suspend fun toggleShowOnlyFavorites() {
+    private fun toggleShowOnlyFavorites() {
         _state.value = when (val currentState = _state.value) {
             is MainState.DataLoaded -> currentState.copy(showOnlyFavorites = !currentState.showOnlyFavorites)
             else -> _state.value
@@ -281,21 +303,21 @@ internal class MainActor(
     private fun createCharactersPager(): Flow<PagingData<StarWarsCharacter>> {
         return Pager(
             config = PagingConfig(pageSize = PAGE_SIZE, enablePlaceholders = false),
-            pagingSourceFactory = { CharacterPagingSource(this, _favoriteCharacters) }
+            pagingSourceFactory = { CharacterPagingSource(this, _favoriteCharacters, repository, networkManager) }
         ).flow.cachedIn(coroutineScope)
     }
 
     private fun createStarshipsPager(): Flow<PagingData<Starship>> {
         return Pager(
             config = PagingConfig(pageSize = PAGE_SIZE, enablePlaceholders = false),
-            pagingSourceFactory = { StarshipPagingSource(this) }
+            pagingSourceFactory = { StarshipPagingSource(this, repository, networkManager) }
         ).flow.cachedIn(coroutineScope)
     }
 
     private fun createPlanetsPager(): Flow<PagingData<Planet>> {
         return Pager(
             config = PagingConfig(pageSize = PAGE_SIZE, enablePlaceholders = false),
-            pagingSourceFactory = { PlanetPagingSource(this) }
+            pagingSourceFactory = { PlanetPagingSource(this, repository, networkManager) }
         ).flow.cachedIn(coroutineScope)
     }
 
@@ -313,6 +335,14 @@ internal class MainActor(
 
     suspend fun updateCharactersInDatabase(characters: List<StarWarsCharacter>) {
         repository.updateCharacters(characters)
+    }
+
+    suspend fun updateStarshipsInDatabase(starships: List<Starship>) {
+        repository.updateStarships(starships)
+    }
+
+    suspend fun updatePlanetsInDatabase(planets: List<Planet>) {
+        repository.updatePlanets(planets)
     }
 
     companion object {

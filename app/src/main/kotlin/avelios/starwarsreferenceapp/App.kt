@@ -66,9 +66,9 @@ internal class App : Application() {
         single { MainActor(get(), get(), get(), get()) }
 
         single { NetworkManager(get(), androidContext()) }
-        single { appScope } // Добавляем CoroutineScope
+        single { appScope }
 
-        viewModel { MainViewModel(get()) }
+        viewModel { MainViewModel(get(), get()) }
     }
 
     override fun onCreate() {
@@ -195,5 +195,15 @@ class NetworkManager(private val connectivityManager: ConnectivityManager, priva
     private companion object {
         const val INTERNET_AVAILABLE = "Internet Connection Established!"
         const val INTERNET_LOST = "Lost Internet Connection!"
+    }
+}
+
+internal object GlobalToast {
+    private var toast: Toast? = null
+
+    fun show(context: Context, message: String) {
+        toast?.cancel()
+        toast = Toast.makeText(context, message, Toast.LENGTH_SHORT)
+        toast?.show()
     }
 }

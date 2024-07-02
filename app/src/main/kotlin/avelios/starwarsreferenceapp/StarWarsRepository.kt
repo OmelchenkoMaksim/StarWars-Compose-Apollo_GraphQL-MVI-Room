@@ -33,6 +33,14 @@ class StarWarsRepository(
         characterDao.insertCharacters(*characters.toTypedArray())
     }
 
+    suspend fun updateStarships(starships: List<Starship>) {
+        starshipDao.insertStarships(starships)
+    }
+
+    suspend fun updatePlanets(planets: List<Planet>) {
+        planetDao.insertPlanets(planets)
+    }
+
     suspend fun fetchCharacterDetails(characterId: String): StarWarsCharacter? {
         return try {
             val response = apolloClient.query(GetCharacterDetailsQuery(characterId)).execute()
@@ -55,16 +63,6 @@ class StarWarsRepository(
         } catch (e: ApolloException) {
             Timber.e(e, "Error fetching character details for characterId: $characterId")
             null
-        }
-    }
-
-    suspend fun loadFavoriteCharacters(): Map<String, Boolean> {
-        return try {
-            val characters: List<StarWarsCharacter> = characterDao.getAllCharacters()
-            characters.associate { it.id to it.isFavorite }
-        } catch (e: Exception) {
-            Timber.e(e, "Error loading favorite characters")
-            emptyMap()
         }
     }
 
