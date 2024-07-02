@@ -1,5 +1,6 @@
 package avelios.starwarsreferenceapp
 
+import android.nfc.tech.MifareUltralight.PAGE_SIZE
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
@@ -16,7 +17,7 @@ import kotlinx.coroutines.launch
 import timber.log.Timber
 
 internal sealed class MainAction {
-    object LoadData : MainAction()
+    data object LoadData : MainAction()
     data class UpdateFavoriteStatus(val characterId: String, val isFavorite: Boolean) : MainAction()
     data class FetchCharacterDetails(val characterId: String) : MainAction()
     data class FetchStarshipDetails(val starshipId: String) : MainAction()
@@ -26,13 +27,13 @@ internal sealed class MainAction {
         val typographyVariant: TypographyVariant
     ) : MainAction()
 
-    object RefreshData : MainAction()
-    object ToggleTheme : MainAction()
-    object ToggleShowOnlyFavorites : MainAction()
+    data object RefreshData : MainAction()
+    data object ToggleTheme : MainAction()
+    data object ToggleShowOnlyFavorites : MainAction()
 }
 
 internal sealed class MainState {
-    object Loading : MainState()
+    data object Loading : MainState()
     data class DataLoaded(
         val characters: List<StarWarsCharacter> = emptyList(),
         val starships: List<Starship> = emptyList(),
@@ -45,10 +46,10 @@ internal sealed class MainState {
         val showOnlyFavorites: Boolean = false
     ) : MainState()
 
-    object EmptyData : MainState()
+    data object EmptyData : MainState()
     data class ShowToast(val message: String) : MainState()
-    object ThemeChanged : MainState()
-    object NoInternetAndEmptyData : MainState()
+    data object ThemeChanged : MainState()
+    data object NoInternetAndEmptyData : MainState()
     data class Error(val message: String) : MainState()
 }
 
@@ -78,40 +79,40 @@ data class PageInfo(
     val hasNextPage: Boolean
 )
 
-internal class MainActor(
+internal class MainActorImpl(
     private val repository: StarWarsRepository,
     private val networkManager: NetworkManager,
     private val settingsManager: SettingsManager,
     private val coroutineScope: CoroutineScope
-) {
+) : MainActor {
     private val _state = MutableStateFlow<MainState>(MainState.Loading)
-    val state: StateFlow<MainState> = _state.asStateFlow()
+    override val state: StateFlow<MainState> = _state.asStateFlow()
 
     private val _effect = MutableSharedFlow<MainEffect>()
 
     private val _favoriteCharacters = MutableStateFlow<Map<String, Boolean>>(emptyMap())
-    val favoriteCharacters: StateFlow<Map<String, Boolean>> = _favoriteCharacters.asStateFlow()
+    override val favoriteCharacters: StateFlow<Map<String, Boolean>> = _favoriteCharacters.asStateFlow()
 
     private val _charactersPager = MutableStateFlow(createCharactersPager())
-    val charactersPager: StateFlow<Flow<PagingData<StarWarsCharacter>>> = _charactersPager
+    override val charactersPager: StateFlow<Flow<PagingData<StarWarsCharacter>>> = _charactersPager
 
     private val _starshipsPager = MutableStateFlow(createStarshipsPager())
-    val starshipsPager: StateFlow<Flow<PagingData<Starship>>> = _starshipsPager
+    override val starshipsPager: StateFlow<Flow<PagingData<Starship>>> = _starshipsPager
 
     private val _planetsPager = MutableStateFlow(createPlanetsPager())
-    val planetsPager: StateFlow<Flow<PagingData<Planet>>> = _planetsPager
+    override val planetsPager: StateFlow<Flow<PagingData<Planet>>> = _planetsPager
 
     private val _selectedCharacter = MutableStateFlow<StarWarsCharacter?>(null)
-    val selectedCharacter: StateFlow<StarWarsCharacter?> = _selectedCharacter.asStateFlow()
+    override val selectedCharacter: StateFlow<StarWarsCharacter?> = _selectedCharacter.asStateFlow()
 
     private val _selectedStarship = MutableStateFlow<Starship?>(null)
-    val selectedStarship: StateFlow<Starship?> = _selectedStarship.asStateFlow()
+    override val selectedStarship: StateFlow<Starship?> = _selectedStarship.asStateFlow()
 
     private val _selectedPlanet = MutableStateFlow<Planet?>(null)
-    val selectedPlanet: StateFlow<Planet?> = _selectedPlanet.asStateFlow()
+    override val selectedPlanet: StateFlow<Planet?> = _selectedPlanet.asStateFlow()
 
     private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+    override val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     init {
         _state.value = MainState.Loading
@@ -119,7 +120,7 @@ internal class MainActor(
         observeNetworkChanges()
     }
 
-    suspend fun handleIntent(intent: MainAction) {
+    override suspend fun handleIntent(intent: MainAction) {
         when (intent) {
             is MainAction.LoadData -> loadData()
             is MainAction.UpdateFavoriteStatus -> updateFavoriteStatus(intent.characterId, intent.isFavorite)
@@ -170,7 +171,10 @@ internal class MainActor(
                     _effect.emit(MainEffect.ShowToast("No internet connection and no data available"))
                 }
             } else {
-                Timber.d("Data loaded successfully: ${characters.size} characters, ${starships.size} starships, ${planets.size} planets")
+                Timber.d(
+                    "Data loaded successfully: ${characters.size} characters, " +
+                        "${starships.size} starships, ${planets.size} planets"
+                )
                 _state.value = MainState.DataLoaded(
                     characters, starships, planets,
                     networkManager.isNetworkAvailable.value,
@@ -271,7 +275,7 @@ internal class MainActor(
         }
     }
 
-    internal suspend fun refreshData() {
+    override suspend fun refreshData() {
         try {
             Timber.d("Refreshing data started")
             repository.refreshData()
@@ -321,31 +325,54 @@ internal class MainActor(
         ).flow.cachedIn(coroutineScope)
     }
 
-    suspend fun fetchStarships(after: String? = null, first: Int = PAGE_SIZE): StarshipsResponse {
+    override suspend fun fetchStarships(after: String?, first: Int): StarshipsResponse {
         return repository.fetchStarships(after, first)
     }
 
-    suspend fun fetchPlanets(after: String? = null, first: Int = PAGE_SIZE): PlanetsResponse {
+    override suspend fun fetchPlanets(after: String?, first: Int): PlanetsResponse {
         return repository.fetchPlanets(after, first)
     }
 
-    suspend fun fetchCharacters(after: String? = null, first: Int = PAGE_SIZE): CharactersResponse {
+    override suspend fun fetchCharacters(after: String?, first: Int): CharactersResponse {
         return repository.fetchCharacters(after, first)
     }
 
-    suspend fun updateCharactersInDatabase(characters: List<StarWarsCharacter>) {
+    override suspend fun updateCharactersInDatabase(characters: List<StarWarsCharacter>) {
         repository.updateCharacters(characters)
     }
 
-    suspend fun updateStarshipsInDatabase(starships: List<Starship>) {
+    override suspend fun updateStarshipsInDatabase(starships: List<Starship>) {
         repository.updateStarships(starships)
     }
 
-    suspend fun updatePlanetsInDatabase(planets: List<Planet>) {
+    override suspend fun updatePlanetsInDatabase(planets: List<Planet>) {
         repository.updatePlanets(planets)
     }
 
-    companion object {
+    internal companion object {
         private const val PAGE_SIZE = 10
     }
+}
+
+internal interface MainActor {
+    val state: StateFlow<MainState>
+    val favoriteCharacters: StateFlow<Map<String, Boolean>>
+    val charactersPager: StateFlow<Flow<PagingData<StarWarsCharacter>>>
+    val starshipsPager: StateFlow<Flow<PagingData<Starship>>>
+    val planetsPager: StateFlow<Flow<PagingData<Planet>>>
+    val selectedCharacter: StateFlow<StarWarsCharacter?>
+    val selectedStarship: StateFlow<Starship?>
+    val selectedPlanet: StateFlow<Planet?>
+    val isLoading: StateFlow<Boolean>
+
+    suspend fun handleIntent(intent: MainAction)
+    suspend fun refreshData()
+
+    suspend fun fetchStarships(after: String? = null, first: Int = PAGE_SIZE): StarshipsResponse
+    suspend fun fetchPlanets(after: String? = null, first: Int = PAGE_SIZE): PlanetsResponse
+    suspend fun fetchCharacters(after: String? = null, first: Int = PAGE_SIZE): CharactersResponse
+
+    suspend fun updateCharactersInDatabase(characters: List<StarWarsCharacter>)
+    suspend fun updateStarshipsInDatabase(starships: List<Starship>)
+    suspend fun updatePlanetsInDatabase(planets: List<Planet>)
 }

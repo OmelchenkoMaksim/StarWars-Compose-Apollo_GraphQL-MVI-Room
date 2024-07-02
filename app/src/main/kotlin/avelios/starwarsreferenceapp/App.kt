@@ -61,12 +61,19 @@ internal class App : Application() {
         single { provideSharedPreferences(androidContext()) }
         single { SettingsManager(get()) }
 
-        single { StarWarsRepository(get(), get(), get(), get()) }
-
-        single { MainActor(get(), get(), get(), get()) }
-
-        single { NetworkManager(get(), androidContext()) }
         single { appScope }
+
+        single<StarWarsRepository> { StarWarsRepositoryImpl(get(), get(), get(), get()) }
+        single<NetworkManager> { NetworkManagerImpl(get(), androidContext()) }
+
+        single<MainActor> {
+            MainActorImpl(
+                repository = get(),
+                networkManager = get(),
+                settingsManager = get(),
+                coroutineScope = get()
+            )
+        }
 
         viewModel { MainViewModel(get(), get()) }
     }
@@ -149,9 +156,12 @@ internal class SettingsManager(private val sharedPreferences: SharedPreferences)
     }
 }
 
-class NetworkManager(private val connectivityManager: ConnectivityManager, private val context: Context) {
+class NetworkManagerImpl(
+    private val connectivityManager: ConnectivityManager,
+    private val context: Context
+) : NetworkManager {
     private val _isNetworkAvailable = MutableStateFlow(false)
-    val isNetworkAvailable: StateFlow<Boolean> = _isNetworkAvailable.asStateFlow()
+    override val isNetworkAvailable: StateFlow<Boolean> = _isNetworkAvailable.asStateFlow()
 
     private val networkCallback = object : ConnectivityManager.NetworkCallback() {
         override fun onAvailable(network: Network) {
@@ -206,4 +216,8 @@ internal object GlobalToast {
         toast = Toast.makeText(context, message, Toast.LENGTH_SHORT)
         toast?.show()
     }
+}
+
+interface NetworkManager {
+    val isNetworkAvailable: StateFlow<Boolean>
 }

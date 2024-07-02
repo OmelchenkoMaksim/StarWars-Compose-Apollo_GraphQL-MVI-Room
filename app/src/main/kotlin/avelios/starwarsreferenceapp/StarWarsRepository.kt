@@ -7,41 +7,41 @@ import com.apollographql.apollo3.api.Optional
 import com.apollographql.apollo3.exception.ApolloException
 import timber.log.Timber
 
-class StarWarsRepository(
+class StarWarsRepositoryImpl(
     private val apolloClient: ApolloClient,
     private val characterDao: CharacterDao,
     private val starshipDao: StarshipDao,
     private val planetDao: PlanetDao
-) {
-    suspend fun getAllCharacters(): List<StarWarsCharacter> {
+) : StarWarsRepository {
+    override suspend fun getAllCharacters(): List<StarWarsCharacter> {
         return characterDao.getAllCharacters()
     }
 
-    suspend fun getAllStarships(): List<Starship> {
+    override suspend fun getAllStarships(): List<Starship> {
         return starshipDao.getAllStarships()
     }
 
-    suspend fun getAllPlanets(): List<Planet> {
+    override suspend fun getAllPlanets(): List<Planet> {
         return planetDao.getAllPlanets()
     }
 
-    suspend fun updateFavoriteStatus(characterId: String, isFavorite: Boolean) {
+    override suspend fun updateFavoriteStatus(characterId: String, isFavorite: Boolean) {
         characterDao.updateFavoriteStatus(characterId, isFavorite)
     }
 
-    suspend fun updateCharacters(characters: List<StarWarsCharacter>) {
+    override suspend fun updateCharacters(characters: List<StarWarsCharacter>) {
         characterDao.insertCharacters(*characters.toTypedArray())
     }
 
-    suspend fun updateStarships(starships: List<Starship>) {
+    override suspend fun updateStarships(starships: List<Starship>) {
         starshipDao.insertStarships(starships)
     }
 
-    suspend fun updatePlanets(planets: List<Planet>) {
+    override suspend fun updatePlanets(planets: List<Planet>) {
         planetDao.insertPlanets(planets)
     }
 
-    suspend fun fetchCharacterDetails(characterId: String): StarWarsCharacter? {
+    override suspend fun fetchCharacterDetails(characterId: String): StarWarsCharacter? {
         return try {
             val response = apolloClient.query(GetCharacterDetailsQuery(characterId)).execute()
             response.data?.person?.let { person ->
@@ -66,7 +66,7 @@ class StarWarsRepository(
         }
     }
 
-    suspend fun fetchStarshipDetails(starshipId: String): Starship? {
+    override suspend fun fetchStarshipDetails(starshipId: String): Starship? {
         return try {
             val response = apolloClient.query(GetStarshipDetailsQuery(starshipId)).execute()
             response.data?.starship?.let { starship ->
@@ -89,7 +89,7 @@ class StarWarsRepository(
         }
     }
 
-    suspend fun fetchPlanetDetails(planetId: String): Planet? {
+    override suspend fun fetchPlanetDetails(planetId: String): Planet? {
         return try {
             val response = apolloClient.query(GetPlanetDetailsQuery(planetId)).execute()
             response.data?.planet?.let { planet ->
@@ -112,7 +112,7 @@ class StarWarsRepository(
         }
     }
 
-    suspend fun fetchCharacters(after: String? = null, first: Int = PAGE_SIZE): CharactersResponse {
+    override suspend fun fetchCharacters(after: String?, first: Int): CharactersResponse {
         return try {
             val response: ApolloResponse<GetCharactersQuery.Data> =
                 apolloClient.query(
@@ -152,7 +152,7 @@ class StarWarsRepository(
         }
     }
 
-    suspend fun fetchStarships(after: String? = null, first: Int = PAGE_SIZE): StarshipsResponse {
+    override suspend fun fetchStarships(after: String?, first: Int): StarshipsResponse {
         return try {
             val response: ApolloResponse<GetStarshipsQuery.Data> =
                 apolloClient.query(
@@ -191,7 +191,7 @@ class StarWarsRepository(
         }
     }
 
-    suspend fun fetchPlanets(after: String? = null, first: Int = PAGE_SIZE): PlanetsResponse {
+    override suspend fun fetchPlanets(after: String?, first: Int): PlanetsResponse {
         return try {
             val response: ApolloResponse<GetPlanetsQuery.Data> =
                 apolloClient.query(
@@ -230,7 +230,7 @@ class StarWarsRepository(
         }
     }
 
-    suspend fun refreshData() {
+    override suspend fun refreshData() {
         try {
             val charactersResponse: CharactersResponse = fetchCharacters()
             val starshipsResponse: StarshipsResponse = fetchStarships()
@@ -250,4 +250,21 @@ class StarWarsRepository(
         const val ZERO_FLOAT = 0f
         const val ZERO_DOUBLE = 0.0
     }
+}
+
+interface StarWarsRepository {
+    suspend fun getAllCharacters(): List<StarWarsCharacter>
+    suspend fun getAllStarships(): List<Starship>
+    suspend fun getAllPlanets(): List<Planet>
+    suspend fun updateFavoriteStatus(characterId: String, isFavorite: Boolean)
+    suspend fun updateCharacters(characters: List<StarWarsCharacter>)
+    suspend fun updateStarships(starships: List<Starship>)
+    suspend fun updatePlanets(planets: List<Planet>)
+    suspend fun fetchCharacterDetails(characterId: String): StarWarsCharacter?
+    suspend fun fetchStarshipDetails(starshipId: String): Starship?
+    suspend fun fetchPlanetDetails(planetId: String): Planet?
+    suspend fun fetchCharacters(after: String? = null, first: Int = PAGE_SIZE): CharactersResponse
+    suspend fun fetchStarships(after: String? = null, first: Int = PAGE_SIZE): StarshipsResponse
+    suspend fun fetchPlanets(after: String? = null, first: Int = PAGE_SIZE): PlanetsResponse
+    suspend fun refreshData()
 }
