@@ -35,7 +35,7 @@ internal class CharacterPagingSource(
                 LoadResult.Page(
                     data = updatedCharacters,
                     prevKey = null,
-                    nextKey = null // No pagination for local data
+                    nextKey = null
                 )
             }
         } catch (e: Exception) {
@@ -74,7 +74,7 @@ internal class StarshipPagingSource(
                 LoadResult.Page(
                     data = localStarships.distinctBy { it.id },
                     prevKey = null,
-                    nextKey = null // No pagination for local data
+                    nextKey = null
                 )
             }
         } catch (e: Exception) {
@@ -113,7 +113,7 @@ internal class PlanetPagingSource(
                 LoadResult.Page(
                     data = localPlanets.distinctBy { it.id },
                     prevKey = null,
-                    nextKey = null // No pagination for local data
+                    nextKey = null
                 )
             }
         } catch (e: Exception) {
