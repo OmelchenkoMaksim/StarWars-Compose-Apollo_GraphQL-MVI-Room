@@ -16,7 +16,9 @@ import com.apollographql.apollo3.network.okHttpClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -63,7 +65,8 @@ internal class App : Application() {
 
         single { MainActor(get()) }
 
-        viewModel { MainViewModel(get(), get()) }
+        single { NetworkManager(get()) }
+        viewModel { MainViewModel(get(), get(), get()) }
     }
 
     override fun onCreate() {
@@ -89,9 +92,7 @@ internal class App : Application() {
             override fun onAvailable(network: Network) {
                 appScope.launch {
                     Toast.makeText(this@App, INTERNET_AVAILABLE, Toast.LENGTH_SHORT).show()
-                    if (mainViewModel.areListsEmpty()) {
-                        mainViewModel.refreshData()
-                    }
+                    mainViewModel.loadData()
                 }
             }
 
@@ -109,14 +110,7 @@ internal class App : Application() {
         connectivityManager.registerNetworkCallback(networkRequest, networkCallback)
     }
 
-    override fun onTerminate() {
-        val connectivityManager: ConnectivityManager by inject()
-        connectivityManager.unregisterNetworkCallback(networkCallback)
-        appScope.cancel()
-        super.onTerminate()
-    }
-
-    internal companion object {
+    private companion object {
         const val SP_FILE_NAME = "settings"
         const val ROOM_NAME = "starwars-database"
         const val HOST_GRAPHQL = "https://swapi-graphql.netlify.app/.netlify/functions/index"
@@ -157,5 +151,39 @@ internal class SettingsManager(private val sharedPreferences: SharedPreferences)
         const val THEME_VARIANT = "theme_variant"
         const val TYPOGRAPHY_VARIANT = "typography_variant"
         const val IS_DARK_MODE = "isDarkMode"
+    }
+}
+
+class NetworkManager(private val connectivityManager: ConnectivityManager) {
+    private val _isNetworkAvailable = MutableStateFlow(false)
+    val isNetworkAvailable: StateFlow<Boolean> = _isNetworkAvailable.asStateFlow()
+
+    private val networkCallback = object : ConnectivityManager.NetworkCallback() {
+        override fun onAvailable(network: Network) {
+            _isNetworkAvailable.value = true
+        }
+
+        override fun onLost(network: Network) {
+            _isNetworkAvailable.value = false
+        }
+
+        override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
+            _isNetworkAvailable.value = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+        }
+    }
+
+    init {
+        val networkRequest = NetworkRequest.Builder()
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .build()
+        connectivityManager.registerNetworkCallback(networkRequest, networkCallback)
+
+        _isNetworkAvailable.value = isNetworkCurrentlyAvailable()
+    }
+
+    private fun isNetworkCurrentlyAvailable(): Boolean {
+        val activeNetwork = connectivityManager.activeNetwork
+        val capabilities = connectivityManager.getNetworkCapabilities(activeNetwork)
+        return capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
     }
 }

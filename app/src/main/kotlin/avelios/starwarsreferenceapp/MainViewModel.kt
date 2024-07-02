@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 
 internal class MainViewModel(
     private val actor: MainActor,
+    private val networkManager: NetworkManager,
     internal val settingsManager: SettingsManager
 ) : ViewModel() {
 
@@ -43,10 +44,10 @@ internal class MainViewModel(
     private val _favoriteCharacters = MutableStateFlow<Map<String, Boolean>>(emptyMap())
     val favoriteCharacters: StateFlow<Map<String, Boolean>> = _favoriteCharacters.asStateFlow()
 
-    val charactersPager: Flow<PagingData<StarWarsCharacter>> = Pager(
-        config = PagingConfig(pageSize = PAGE_SIZE, enablePlaceholders = false),
-        pagingSourceFactory = { CharacterPagingSource(actor, favoriteCharacters) }
-    ).flow.cachedIn(viewModelScope)
+    val isNetworkAvailable: StateFlow<Boolean> = networkManager.isNetworkAvailable
+
+    private val _charactersPager = MutableStateFlow(createCharactersPager())
+    val charactersPager: StateFlow<Flow<PagingData<StarWarsCharacter>>> = _charactersPager
 
     val starshipsPager: Flow<PagingData<Starship>> = Pager(
         config = PagingConfig(pageSize = PAGE_SIZE, enablePlaceholders = false),
@@ -63,6 +64,19 @@ internal class MainViewModel(
             loadFavoriteCharacters()
             loadData()
         }
+
+        viewModelScope.launch {
+            isNetworkAvailable.collect { isAvailable ->
+                if (isAvailable) {
+                    if (areListsEmpty()) {
+                        refreshData()
+                    } else {
+                        _charactersPager.value = createCharactersPager()
+                        loadData()
+                    }
+                }
+            }
+        }
     }
 
     fun handleIntent(intent: MainIntent) {
@@ -78,17 +92,38 @@ internal class MainViewModel(
         }
     }
 
-    private suspend fun loadData() {
+    internal suspend fun loadData() {
         _isLoading.value = true
         try {
-            val data = actor.loadData()
-            _state.value = data as MainState.DataLoaded
+            when (val result = actor.loadData()) {
+                is MainState.DataLoaded -> {
+                    if (result.characters.isEmpty() && result.starships.isEmpty() && result.planets.isEmpty()) {
+                        _state.value = MainState.EmptyData
+                    } else {
+                        _state.value = result
+                    }
+                }
+
+                is MainState.Error -> {
+                    if (!networkManager.isNetworkAvailable.value && areLocalDataEmpty()) {
+                        _state.value = MainState.NoInternetAndEmptyData
+                    } else {
+                        _state.value = result
+                    }
+                }
+
+                else -> _state.value = result
+            }
             _news.emit(MainNews.DataLoaded)
         } catch (e: Exception) {
             _news.emit(MainNews.ErrorOccurred(e.message ?: "Unknown error occurred"))
         } finally {
             _isLoading.value = false
         }
+    }
+
+    private suspend fun areLocalDataEmpty(): Boolean {
+        return actor.areLocalDataEmpty()
     }
 
     private suspend fun loadFavoriteCharacters() {
@@ -151,11 +186,11 @@ internal class MainViewModel(
         }
     }
 
-    internal suspend fun refreshData() {
+    private suspend fun refreshData() {
         _isLoading.value = true
         try {
-            actor.refreshData()
-            loadData()
+            val newState = actor.refreshData()
+            _state.value = newState
             _news.emit(MainNews.DataRefreshed)
         } catch (e: Exception) {
             _news.emit(MainNews.ErrorOccurred("Failed to refresh data"))
@@ -173,11 +208,18 @@ internal class MainViewModel(
         }
     }
 
-    fun areListsEmpty(): Boolean {
+    private fun areListsEmpty(): Boolean {
         val currentState = _state.value
         return if (currentState is MainState.DataLoaded) {
             currentState.characters.isEmpty() && currentState.starships.isEmpty() && currentState.planets.isEmpty()
         } else true
+    }
+
+    private fun createCharactersPager(): Flow<PagingData<StarWarsCharacter>> {
+        return Pager(
+            config = PagingConfig(pageSize = PAGE_SIZE, enablePlaceholders = false),
+            pagingSourceFactory = { CharacterPagingSource(actor, favoriteCharacters) }
+        ).flow.cachedIn(viewModelScope)
     }
 
     internal companion object {

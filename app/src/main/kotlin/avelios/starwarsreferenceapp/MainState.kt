@@ -2,14 +2,18 @@ package avelios.starwarsreferenceapp
 
 import timber.log.Timber
 
-internal sealed class MainState {
+sealed class MainState {
     data object Loading : MainState()
     data class DataLoaded(
         val characters: List<StarWarsCharacter> = emptyList(),
         val starships: List<Starship> = emptyList(),
-        val planets: List<Planet> = emptyList()
+        val planets: List<Planet> = emptyList(),
+        val isNetworkAvailable: Boolean = false,
+        val favoriteCharacters: Map<String, Boolean> = emptyMap()
     ) : MainState()
 
+    data object EmptyData : MainState()
+    data object NoInternetAndEmptyData : MainState()
     data class Error(val message: String) : MainState()
 }
 
@@ -50,9 +54,14 @@ internal class MainActor(
     suspend fun loadData(): MainState {
         return try {
             val characters = repository.getAllCharacters()
-            val starships = repository.fetchStarships()
-            val planets = repository.fetchPlanets()
-            MainState.DataLoaded(characters, starships, planets)
+            val starships = repository.getAllStarships()
+            val planets = repository.getAllPlanets()
+
+            if (characters.isEmpty() && starships.isEmpty() && planets.isEmpty()) {
+                refreshData()
+            } else {
+                MainState.DataLoaded(characters, starships, planets)
+            }
         } catch (e: Exception) {
             Timber.e(e, "Error loading data")
             MainState.Error(e.message ?: "Unknown Error")
@@ -95,7 +104,20 @@ internal class MainActor(
         return repository.fetchPlanets(after, first)
     }
 
-    suspend fun refreshData() {
-        repository.refreshData()
+    suspend fun refreshData(): MainState {
+        return try {
+            repository.refreshData()
+            loadData()
+        } catch (e: Exception) {
+            Timber.e(e, "Error refreshing data")
+            MainState.Error(e.message ?: "Failed to refresh data")
+        }
+    }
+
+    suspend fun areLocalDataEmpty(): Boolean {
+        val characters = repository.getAllCharacters()
+        val starships = repository.getAllStarships()
+        val planets = repository.getAllPlanets()
+        return characters.isEmpty() && starships.isEmpty() && planets.isEmpty()
     }
 }

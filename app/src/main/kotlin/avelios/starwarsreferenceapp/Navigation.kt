@@ -2,9 +2,11 @@ package avelios.starwarsreferenceapp
 
 import android.widget.Toast
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -35,6 +37,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Shadow
@@ -87,16 +90,18 @@ internal fun MainScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val favoriteCharacters by viewModel.favoriteCharacters.collectAsState()
+    val isNetworkAvailable by viewModel.isNetworkAvailable.collectAsState()
+    val charactersPager by viewModel.charactersPager.collectAsState()
 
     when (state) {
         is MainState.Loading -> {
-            Timber.d("Loading state")
+            Timber.d("MainState.Loading state")
             LoadingIndicator()
         }
 
         is MainState.DataLoaded -> {
-            Timber.d("DataLoaded state with characters: ${(state as MainState.DataLoaded).characters.size}")
-            val characters = viewModel.charactersPager.collectAsLazyPagingItems()
+            Timber.d("MainState.DataLoaded state with characters: ${(state as MainState.DataLoaded).characters.size}")
+            val characters = charactersPager.collectAsLazyPagingItems()
 
             DataScreen(
                 onFavoriteClick = { id, isFavorite ->
@@ -112,10 +117,30 @@ internal fun MainScreen(
             )
         }
 
+        is MainState.EmptyData -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    text = if (isNetworkAvailable) {
+                        "The lists are empty. Try refreshing the data."
+                    } else {
+                        "No internet connection. The lists are empty."
+                    }
+                )
+            }
+        }
+
+        is MainState.NoInternetAndEmptyData -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("No internet connection and the local database is empty.")
+            }
+        }
+
         is MainState.Error -> {
             val errorMessage = (state as MainState.Error).message
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("Error: $errorMessage")
+            }
             Timber.e("Error state with message: $errorMessage")
-            Text(text = "Error: $errorMessage")
         }
     }
 }

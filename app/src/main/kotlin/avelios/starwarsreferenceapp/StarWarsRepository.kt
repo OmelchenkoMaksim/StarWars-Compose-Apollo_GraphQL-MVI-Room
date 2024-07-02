@@ -16,6 +16,14 @@ class StarWarsRepository(
         return characterDao.getAllCharacters()
     }
 
+    suspend fun getAllStarships(): List<Starship> {
+        return starshipDao.getAllStarships()
+    }
+
+    suspend fun getAllPlanets(): List<Planet> {
+        return planetDao.getAllPlanets()
+    }
+
     suspend fun updateFavoriteStatus(characterId: String, isFavorite: Boolean) {
         characterDao.updateFavoriteStatus(characterId, isFavorite)
     }
@@ -214,7 +222,7 @@ class StarWarsRepository(
             starshipDao.insertStarships(*starships.toTypedArray())
             planetDao.insertPlanets(*planets.toTypedArray())
         } catch (e: Exception) {
-            Timber.e(e, "Error refreshing data")
+            Timber.e(e, "Error refreshing data: ${e.message}")
         }
     }
 
