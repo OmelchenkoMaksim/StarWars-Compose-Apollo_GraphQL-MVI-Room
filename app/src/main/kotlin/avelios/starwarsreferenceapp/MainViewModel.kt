@@ -49,15 +49,11 @@ internal class MainViewModel(
     private val _charactersPager = MutableStateFlow(createCharactersPager())
     val charactersPager: StateFlow<Flow<PagingData<StarWarsCharacter>>> = _charactersPager
 
-    val starshipsPager: Flow<PagingData<Starship>> = Pager(
-        config = PagingConfig(pageSize = PAGE_SIZE, enablePlaceholders = false),
-        pagingSourceFactory = { StarshipPagingSource(actor) }
-    ).flow.cachedIn(viewModelScope)
+    private val _starshipsPager = MutableStateFlow(createStarshipsPager())
+    val starshipsPager: StateFlow<Flow<PagingData<Starship>>> = _starshipsPager
 
-    val planetsPager: Flow<PagingData<Planet>> = Pager(
-        config = PagingConfig(pageSize = PAGE_SIZE, enablePlaceholders = false),
-        pagingSourceFactory = { PlanetPagingSource(actor) }
-    ).flow.cachedIn(viewModelScope)
+    private val _planetsPager = MutableStateFlow(createPlanetsPager())
+    val planetsPager: StateFlow<Flow<PagingData<Planet>>> = _planetsPager
 
     init {
         viewModelScope.launch {
@@ -74,6 +70,10 @@ internal class MainViewModel(
                         _charactersPager.value = createCharactersPager()
                         loadData()
                     }
+                } else {
+                    _charactersPager.value = createLocalCharactersPager()
+                    _starshipsPager.value = createLocalStarshipsPager()
+                    _planetsPager.value = createLocalPlanetsPager()
                 }
             }
         }
@@ -219,6 +219,39 @@ internal class MainViewModel(
         return Pager(
             config = PagingConfig(pageSize = PAGE_SIZE, enablePlaceholders = false),
             pagingSourceFactory = { CharacterPagingSource(actor, favoriteCharacters) }
+        ).flow.cachedIn(viewModelScope)
+    }
+    private fun createStarshipsPager(): Flow<PagingData<Starship>> {
+        return Pager(
+            config = PagingConfig(pageSize = PAGE_SIZE, enablePlaceholders = false),
+            pagingSourceFactory = { StarshipPagingSource(actor) }
+        ).flow.cachedIn(viewModelScope)
+    }
+
+    private fun createPlanetsPager(): Flow<PagingData<Planet>> {
+        return Pager(
+            config = PagingConfig(pageSize = PAGE_SIZE, enablePlaceholders = false),
+            pagingSourceFactory = { PlanetPagingSource(actor) }
+        ).flow.cachedIn(viewModelScope)
+    }
+    private fun createLocalCharactersPager(): Flow<PagingData<StarWarsCharacter>> {
+        return Pager(
+            config = PagingConfig(pageSize = PAGE_SIZE, enablePlaceholders = false),
+            pagingSourceFactory = { actor.getCharacterDao().getCharactersPagingSource() }
+        ).flow.cachedIn(viewModelScope)
+    }
+
+    private fun createLocalStarshipsPager(): Flow<PagingData<Starship>> {
+        return Pager(
+            config = PagingConfig(pageSize = PAGE_SIZE, enablePlaceholders = false),
+            pagingSourceFactory = { actor.getStarshipDao().getStarshipsPagingSource() }
+        ).flow.cachedIn(viewModelScope)
+    }
+
+    private fun createLocalPlanetsPager(): Flow<PagingData<Planet>> {
+        return Pager(
+            config = PagingConfig(pageSize = PAGE_SIZE, enablePlaceholders = false),
+            pagingSourceFactory = { actor.getPlanetDao().getPlanetsPagingSource() }
         ).flow.cachedIn(viewModelScope)
     }
 

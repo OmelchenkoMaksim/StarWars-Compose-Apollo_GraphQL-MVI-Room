@@ -84,7 +84,8 @@ fun StarshipsScreen(
     onStarshipClick: (String) -> Unit
 ) {
     val viewModel: MainViewModel = koinViewModel()
-    val lazyPagingItems: LazyPagingItems<Starship> = viewModel.starshipsPager.collectAsLazyPagingItems()
+    val starshipsPagingData by viewModel.starshipsPager.collectAsState()
+    val lazyPagingItems: LazyPagingItems<Starship> = starshipsPagingData.collectAsLazyPagingItems()
 
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn {
@@ -125,7 +126,8 @@ fun PlanetsScreen(
     onPlanetClick: (String) -> Unit
 ) {
     val viewModel: MainViewModel = koinViewModel()
-    val lazyPagingItems: LazyPagingItems<Planet> = viewModel.planetsPager.collectAsLazyPagingItems()
+    val planetsPagingData by viewModel.planetsPager.collectAsState()
+    val lazyPagingItems: LazyPagingItems<Planet> = planetsPagingData.collectAsLazyPagingItems()
 
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn {

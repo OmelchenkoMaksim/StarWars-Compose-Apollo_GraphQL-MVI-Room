@@ -9,9 +9,9 @@ import timber.log.Timber
 
 class StarWarsRepository(
     private val apolloClient: ApolloClient,
-    private val characterDao: CharacterDao,
-    private val starshipDao: StarshipDao,
-    private val planetDao: PlanetDao
+    internal val characterDao: CharacterDao,
+    internal val starshipDao: StarshipDao,
+    internal val planetDao: PlanetDao
 ) {
     suspend fun getAllCharacters(): List<StarWarsCharacter> {
         return characterDao.getAllCharacters()

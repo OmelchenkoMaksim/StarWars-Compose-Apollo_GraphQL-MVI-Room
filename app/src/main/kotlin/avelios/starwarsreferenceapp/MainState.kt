@@ -68,9 +68,23 @@ internal class MainActor(
             MainState.Error(e.message ?: "Unknown Error")
         }
     }
+
+    suspend fun fetchCharactersFromLocal(): List<StarWarsCharacter> {
+        return repository.getAllCharacters()
+    }
+
+    suspend fun fetchStarshipsFromLocal(): List<Starship> {
+        return repository.getAllStarships()
+    }
+
+    suspend fun fetchPlanetsFromLocal(): List<Planet> {
+        return repository.getAllPlanets()
+    }
+
     suspend fun updateCharactersInDatabase(characters: List<StarWarsCharacter>) {
         repository.updateCharacters(characters)
     }
+
     suspend fun updateFavoriteStatus(characterId: String, isFavorite: Boolean) {
         try {
             repository.updateFavoriteStatus(characterId, isFavorite)
@@ -122,5 +136,17 @@ internal class MainActor(
         val starships = repository.getAllStarships()
         val planets = repository.getAllPlanets()
         return characters.isEmpty() && starships.isEmpty() && planets.isEmpty()
+    }
+
+    fun getCharacterDao(): CharacterDao {
+        return repository.characterDao
+    }
+
+    fun getStarshipDao(): StarshipDao {
+        return repository.starshipDao
+    }
+
+    fun getPlanetDao(): PlanetDao {
+        return repository.planetDao
     }
 }

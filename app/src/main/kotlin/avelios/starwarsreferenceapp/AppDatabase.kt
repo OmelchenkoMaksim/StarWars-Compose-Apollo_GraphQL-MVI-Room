@@ -1,5 +1,6 @@
 package avelios.starwarsreferenceapp
 
+import androidx.paging.PagingSource
 import androidx.room.Dao
 import androidx.room.Database
 import androidx.room.Entity
@@ -66,6 +67,9 @@ data class Planet(
 @Dao
 interface CharacterDao {
     @Query("SELECT * FROM characters")
+    fun getCharactersPagingSource(): PagingSource<Int, StarWarsCharacter>
+
+    @Query("SELECT * FROM characters")
     suspend fun getAllCharacters(): List<StarWarsCharacter>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -81,6 +85,9 @@ interface CharacterDao {
 @Dao
 interface StarshipDao {
     @Query("SELECT * FROM starships")
+    fun getStarshipsPagingSource(): PagingSource<Int, Starship>
+
+    @Query("SELECT * FROM starships")
     suspend fun getAllStarships(): List<Starship>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -89,6 +96,9 @@ interface StarshipDao {
 
 @Dao
 interface PlanetDao {
+    @Query("SELECT * FROM planets")
+    fun getPlanetsPagingSource(): PagingSource<Int, Planet>
+
     @Query("SELECT * FROM planets")
     suspend fun getAllPlanets(): List<Planet>
 

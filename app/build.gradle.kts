@@ -67,11 +67,12 @@ dependencies {
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
+    implementation(libs.androidx.room.paging)
 
     // Apollo GraphQL dependencies
     implementation(libs.apollo.runtime)
 
-    // Networking dependencies
+    // Network dependencies
     implementation(libs.logging.interceptor)
     implementation(libs.moshi)
     implementation(libs.moshi.kotlin)
