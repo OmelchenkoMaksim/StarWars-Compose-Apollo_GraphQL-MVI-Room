@@ -68,8 +68,6 @@ import avelios.starwarsreferenceapp.NavigationConstants.CHARACTER_DETAILS_ROUTE
 import avelios.starwarsreferenceapp.NavigationConstants.CHARACTER_DETAILS_SLASH
 import avelios.starwarsreferenceapp.NavigationConstants.CHARACTER_ID_KEY
 import avelios.starwarsreferenceapp.NavigationConstants.CHARACTER_TITLE
-import avelios.starwarsreferenceapp.NavigationConstants.DARK_MODE_ENABLED
-import avelios.starwarsreferenceapp.NavigationConstants.LIGHT_MODE_ENABLED
 import avelios.starwarsreferenceapp.NavigationConstants.OK
 import avelios.starwarsreferenceapp.NavigationConstants.PLANET_DETAILS_ROUTE
 import avelios.starwarsreferenceapp.NavigationConstants.PLANET_DETAILS_SLASH
@@ -82,6 +80,7 @@ import avelios.starwarsreferenceapp.NavigationConstants.STARSHIP_DETAILS_ROUTE
 import avelios.starwarsreferenceapp.NavigationConstants.STARSHIP_DETAILS_SLASH
 import avelios.starwarsreferenceapp.NavigationConstants.STARSHIP_ID_KEY
 import avelios.starwarsreferenceapp.NavigationConstants.STARSHIP_TITLE
+import avelios.starwarsreferenceapp.NavigationConstants.THEME_MODE_CHANGED
 import avelios.starwarsreferenceapp.NavigationConstants.TOGGLE_FAVORITES
 import avelios.starwarsreferenceapp.NavigationConstants.TOGGLE_THEME
 import avelios.starwarsreferenceapp.ui.theme.ThemeVariant
@@ -217,8 +216,7 @@ fun DataScreen(
                     IconButton(onClick = {
                         toggleTheme()
                         isDarkTheme.value = !isDarkTheme.value
-                        val toastMessage = if (isDarkTheme.value) DARK_MODE_ENABLED else LIGHT_MODE_ENABLED
-                        showToast(toastMessage)
+                        showToast(THEME_MODE_CHANGED)
                     }) {
                         Image(
                             painter = painterResource(id = R.drawable.ic_day_night),
@@ -466,8 +464,7 @@ object NavigationConstants {
     const val STARSHIP_TITLE = "Starship"
     const val PLANET_TITLE = "Planet"
 
-    const val DARK_MODE_ENABLED = "Dark Mode Enabled!"
-    const val LIGHT_MODE_ENABLED = "Light Mode Enabled!"
+    const val THEME_MODE_CHANGED = "Theme Mode Changed!"
     const val BACK = "Back"
     const val TOGGLE_FAVORITES = "Toggle Favorites"
     const val TOGGLE_THEME = "Toggle Theme"
