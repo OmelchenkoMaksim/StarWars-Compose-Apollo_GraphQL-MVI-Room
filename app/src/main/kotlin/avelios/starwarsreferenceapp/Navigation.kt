@@ -2,11 +2,13 @@ package avelios.starwarsreferenceapp
 
 import android.widget.Toast
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -40,6 +42,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -55,6 +58,10 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
+import avelios.starwarsreferenceapp.MainScreenConstants.EMPTY_DATA_WITHOUT_INTERNET_MESSAGE
+import avelios.starwarsreferenceapp.MainScreenConstants.EMPTY_DATA_WITH_INTERNET_MESSAGE
+import avelios.starwarsreferenceapp.MainScreenConstants.NO_INTERNET_AND_EMPTY_DATA_MESSAGE
+import avelios.starwarsreferenceapp.MainScreenConstants.OFFLINE_MODE_MESSAGE
 import avelios.starwarsreferenceapp.NavigationConstants.APP_TITLE
 import avelios.starwarsreferenceapp.NavigationConstants.BACK
 import avelios.starwarsreferenceapp.NavigationConstants.CHARACTER_DETAILS_ROUTE
@@ -94,10 +101,7 @@ internal fun MainScreen(
     val charactersPager by viewModel.charactersPager.collectAsState()
 
     when (state) {
-        is MainState.Loading -> {
-            Timber.d("MainState.Loading state")
-            LoadingIndicator()
-        }
+        is MainState.Loading -> LoadingIndicator()
 
         is MainState.DataLoaded -> {
             Timber.d("MainState.DataLoaded state with characters: ${(state as MainState.DataLoaded).characters.size}")
@@ -118,20 +122,18 @@ internal fun MainScreen(
         }
 
         is MainState.EmptyData -> {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.fillMaxSize().background(Color.Red), contentAlignment = Alignment.Center) {
                 Text(
-                    text = if (isNetworkAvailable) {
-                        "The lists are empty. Try refreshing the data."
-                    } else {
-                        "No internet connection. The lists are empty."
-                    }
+                    text = if (isNetworkAvailable) EMPTY_DATA_WITH_INTERNET_MESSAGE
+                    else EMPTY_DATA_WITHOUT_INTERNET_MESSAGE,
+                    color = Color.White
                 )
             }
         }
 
         is MainState.NoInternetAndEmptyData -> {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("No internet connection and the local database is empty.")
+                Text(NO_INTERNET_AND_EMPTY_DATA_MESSAGE)
             }
         }
 
@@ -143,6 +145,25 @@ internal fun MainScreen(
             Timber.e("Error state with message: $errorMessage")
         }
     }
+
+    if (!isNetworkAvailable) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.Red)
+                .padding(8.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(OFFLINE_MODE_MESSAGE, color = Color.White)
+        }
+    }
+}
+
+object MainScreenConstants {
+    const val EMPTY_DATA_WITH_INTERNET_MESSAGE = "The lists are empty. Try refreshing the data."
+    const val EMPTY_DATA_WITHOUT_INTERNET_MESSAGE = "No internet connection. The lists are empty."
+    const val NO_INTERNET_AND_EMPTY_DATA_MESSAGE = "No internet connection and the local database is empty."
+    const val OFFLINE_MODE_MESSAGE = "Offline mode: Please check your internet connection"
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

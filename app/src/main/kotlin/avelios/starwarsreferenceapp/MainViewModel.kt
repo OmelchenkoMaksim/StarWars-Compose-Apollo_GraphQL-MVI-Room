@@ -203,9 +203,7 @@ internal class MainViewModel(
         val newTheme = !_isDarkTheme.value
         _isDarkTheme.value = newTheme
         settingsManager.setDarkMode(newTheme)
-        viewModelScope.launch {
-            _effect.emit(MainEffect.ThemeChanged(newTheme))
-        }
+        viewModelScope.launch { _effect.emit(MainEffect.ThemeChanged(newTheme)) }
     }
 
     private fun areListsEmpty(): Boolean {
@@ -221,6 +219,7 @@ internal class MainViewModel(
             pagingSourceFactory = { CharacterPagingSource(actor, favoriteCharacters) }
         ).flow.cachedIn(viewModelScope)
     }
+
     private fun createStarshipsPager(): Flow<PagingData<Starship>> {
         return Pager(
             config = PagingConfig(pageSize = PAGE_SIZE, enablePlaceholders = false),
@@ -234,6 +233,7 @@ internal class MainViewModel(
             pagingSourceFactory = { PlanetPagingSource(actor) }
         ).flow.cachedIn(viewModelScope)
     }
+
     private fun createLocalCharactersPager(): Flow<PagingData<StarWarsCharacter>> {
         return Pager(
             config = PagingConfig(pageSize = PAGE_SIZE, enablePlaceholders = false),
@@ -261,6 +261,6 @@ internal class MainViewModel(
         private const val CHARACTER_TYPE = "character"
         private const val STARSHIP_TYPE = "starship"
         private const val PLANET_TYPE = "planet"
-        internal const val PAGE_SIZE = 10
+        internal const val PAGE_SIZE = 20
     }
 }

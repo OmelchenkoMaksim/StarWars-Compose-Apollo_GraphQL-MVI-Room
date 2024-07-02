@@ -2,7 +2,7 @@ package avelios.starwarsreferenceapp.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Black and Dark Colors
+// Black and Dark
 internal object DarkColors {
     val black = Color(0xFF000000)
     val charcoal = Color(0xFF36454F)
@@ -13,7 +13,7 @@ internal object DarkColors {
     val ebony = Color(0xFF555D50)
 }
 
-// White and Light Colors
+// White and Light
 internal object LightColors {
     val white = Color(0xFFFFFFFF)
     val ivory = Color(0xFFFFFFF0)
@@ -24,7 +24,7 @@ internal object LightColors {
     val oldLace = Color(0xFFFDF5E6)
 }
 
-// Red Colors
+// Red
 internal object RedColors {
     val red = Color(0xFFFF0000)
     val darkRed = Color(0xFF8B0000)
@@ -35,7 +35,7 @@ internal object RedColors {
     val salmon = Color(0xFFFA8072)
 }
 
-// Blue Colors
+// Blue
 internal object BlueColors {
     val blue = Color(0xFF0000FF)
     val navy = Color(0xFF000080)
@@ -50,7 +50,7 @@ internal object BlueColors {
     val cornflowerBlue = Color(0xFF6495ED)
 }
 
-// Green Colors
+// Green
 internal object GreenColors {
     val forestGreen = Color(0xFF228B22)
     val seaGreen = Color(0xFF2E8B57)
@@ -67,7 +67,7 @@ internal object GreenColors {
     val olive = Color(0xFF808000)
 }
 
-// Yellow Colors
+// Yellow
 internal object YellowColors {
     val yellow = Color(0xFFFFFF00)
     val gold = Color(0xFFFFD700)
@@ -81,7 +81,7 @@ internal object YellowColors {
     val khaki = Color(0xFFF0E68C)
 }
 
-// Purple Colors
+// Purple
 internal object PurpleColors {
     val indigo = Color(0xFF4B0082)
     val darkViolet = Color(0xFF9400D3)
@@ -97,7 +97,7 @@ internal object PurpleColors {
     val midnightPurple = Color(0xFF280137)
 }
 
-// Orange Colors
+// Orange
 internal object OrangeColors {
     val lightSalmon = Color(0xFFFFB6C1)
     val lightOrange = Color(0xFFFFE5B4)

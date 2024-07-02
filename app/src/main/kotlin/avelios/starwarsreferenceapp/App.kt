@@ -164,11 +164,8 @@ class NetworkManager(private val connectivityManager: ConnectivityManager, priva
 
         override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
             _isNetworkAvailable.value = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-            if (_isNetworkAvailable.value) {
-                showToast(INTERNET_AVAILABLE)
-            } else {
-                showToast(INTERNET_LOST)
-            }
+            if (_isNetworkAvailable.value) showToast(INTERNET_AVAILABLE)
+            else showToast(INTERNET_LOST)
         }
     }
 
@@ -179,11 +176,8 @@ class NetworkManager(private val connectivityManager: ConnectivityManager, priva
         connectivityManager.registerNetworkCallback(networkRequest, networkCallback)
 
         _isNetworkAvailable.value = isNetworkCurrentlyAvailable()
-        if (_isNetworkAvailable.value) {
-            showToast(INTERNET_AVAILABLE)
-        } else {
-            showToast(INTERNET_LOST)
-        }
+        if (_isNetworkAvailable.value) showToast(INTERNET_AVAILABLE)
+        else showToast(INTERNET_LOST)
     }
 
     private fun isNetworkCurrentlyAvailable(): Boolean {

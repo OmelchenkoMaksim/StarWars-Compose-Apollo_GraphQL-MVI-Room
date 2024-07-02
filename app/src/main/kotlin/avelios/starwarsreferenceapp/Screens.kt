@@ -48,6 +48,38 @@ import androidx.compose.ui.unit.dp
 import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
+import avelios.starwarsreferenceapp.CharacterDetailsScreenConstants.ADD_TO_FAVORITES
+import avelios.starwarsreferenceapp.CharacterDetailsScreenConstants.BIRTH_YEAR
+import avelios.starwarsreferenceapp.CharacterDetailsScreenConstants.EYE_COLOR
+import avelios.starwarsreferenceapp.CharacterDetailsScreenConstants.FILMS_COUNT
+import avelios.starwarsreferenceapp.CharacterDetailsScreenConstants.GENDER
+import avelios.starwarsreferenceapp.CharacterDetailsScreenConstants.HAIR_COLOR
+import avelios.starwarsreferenceapp.CharacterDetailsScreenConstants.HEIGHT
+import avelios.starwarsreferenceapp.CharacterDetailsScreenConstants.HOMEWORLD
+import avelios.starwarsreferenceapp.CharacterDetailsScreenConstants.MASS
+import avelios.starwarsreferenceapp.CharacterDetailsScreenConstants.NAME_CHARACTER
+import avelios.starwarsreferenceapp.CharacterDetailsScreenConstants.REMOVE_FROM_FAVORITES
+import avelios.starwarsreferenceapp.CharacterDetailsScreenConstants.SKIN_COLOR
+import avelios.starwarsreferenceapp.PlanetDetailsScreenConstants.CLIMATES
+import avelios.starwarsreferenceapp.PlanetDetailsScreenConstants.DIAMETER
+import avelios.starwarsreferenceapp.PlanetDetailsScreenConstants.GRAVITY
+import avelios.starwarsreferenceapp.PlanetDetailsScreenConstants.NAME_PLANET
+import avelios.starwarsreferenceapp.PlanetDetailsScreenConstants.ORBITAL_PERIOD
+import avelios.starwarsreferenceapp.PlanetDetailsScreenConstants.PLANET
+import avelios.starwarsreferenceapp.PlanetDetailsScreenConstants.POPULATION
+import avelios.starwarsreferenceapp.PlanetDetailsScreenConstants.ROTATION_PERIOD
+import avelios.starwarsreferenceapp.PlanetDetailsScreenConstants.SURFACE_WATER
+import avelios.starwarsreferenceapp.PlanetDetailsScreenConstants.TERRAINS
+import avelios.starwarsreferenceapp.StarshipDetailsScreenConstants.CREW
+import avelios.starwarsreferenceapp.StarshipDetailsScreenConstants.HYPERDRIVE_RATING
+import avelios.starwarsreferenceapp.StarshipDetailsScreenConstants.LENGTH
+import avelios.starwarsreferenceapp.StarshipDetailsScreenConstants.MANUFACTURERS
+import avelios.starwarsreferenceapp.StarshipDetailsScreenConstants.MAX_ATMOSPHERING_SPEED
+import avelios.starwarsreferenceapp.StarshipDetailsScreenConstants.MODEL
+import avelios.starwarsreferenceapp.StarshipDetailsScreenConstants.NAME_STARSHIP
+import avelios.starwarsreferenceapp.StarshipDetailsScreenConstants.PASSENGERS
+import avelios.starwarsreferenceapp.StarshipDetailsScreenConstants.STARSHIP
+import avelios.starwarsreferenceapp.StarshipDetailsScreenConstants.STARSHIP_CLASS
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -99,13 +131,8 @@ fun StarshipsScreen(
 
         lazyPagingItems.apply {
             when {
-                loadState.refresh is LoadState.Loading -> {
-                    LoadingIndicator()
-                }
-
-                loadState.append is LoadState.Loading -> {
-                    LoadingIndicator()
-                }
+                loadState.refresh is LoadState.Loading -> LoadingIndicator()
+                loadState.append is LoadState.Loading -> LoadingIndicator()
 
                 loadState.refresh is LoadState.Error -> {
                     val e = lazyPagingItems.loadState.refresh as LoadState.Error
@@ -141,13 +168,8 @@ fun PlanetsScreen(
 
         lazyPagingItems.apply {
             when {
-                loadState.refresh is LoadState.Loading -> {
-                    LoadingIndicator()
-                }
-
-                loadState.append is LoadState.Loading -> {
-                    LoadingIndicator()
-                }
+                loadState.refresh is LoadState.Loading -> LoadingIndicator()
+                loadState.append is LoadState.Loading -> LoadingIndicator()
 
                 loadState.refresh is LoadState.Error -> {
                     val e = lazyPagingItems.loadState.refresh as LoadState.Error
@@ -184,7 +206,7 @@ fun CharacterDetailsScreen(characterId: String) {
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "Name: ${characterDetails.name}",
+                        text = "${NAME_CHARACTER}${characterDetails.name}",
                         style = typography.bodyLarge.copy(
                             shadow = Shadow(
                                 color = MaterialTheme.colorScheme.onBackground,
@@ -195,14 +217,14 @@ fun CharacterDetailsScreen(characterId: String) {
                         color = MaterialTheme.colorScheme.primary
                     )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-                    Text(text = "Birth Year: ${characterDetails.birthYear}", style = typography.bodyMedium)
-                    Text(text = "Eye Color: ${characterDetails.eyeColor}", style = typography.bodyMedium)
-                    Text(text = "Gender: ${characterDetails.gender}", style = typography.bodyMedium)
-                    Text(text = "Hair Color: ${characterDetails.hairColor}", style = typography.bodyMedium)
-                    Text(text = "Height: ${characterDetails.height}", style = typography.bodyMedium)
-                    Text(text = "Mass: ${characterDetails.mass}", style = typography.bodyMedium)
-                    Text(text = "Skin Color: ${characterDetails.skinColor}", style = typography.bodyMedium)
-                    Text(text = "Homeworld: ${characterDetails.homeworld}", style = typography.bodyMedium)
+                    Text(text = "${BIRTH_YEAR}${characterDetails.birthYear}", style = typography.bodyMedium)
+                    Text(text = "${EYE_COLOR}${characterDetails.eyeColor}", style = typography.bodyMedium)
+                    Text(text = "${GENDER}${characterDetails.gender}", style = typography.bodyMedium)
+                    Text(text = "${HAIR_COLOR}${characterDetails.hairColor}", style = typography.bodyMedium)
+                    Text(text = "${HEIGHT}${characterDetails.height}", style = typography.bodyMedium)
+                    Text(text = "${MASS}${characterDetails.mass}", style = typography.bodyMedium)
+                    Text(text = "${SKIN_COLOR}${characterDetails.skinColor}", style = typography.bodyMedium)
+                    Text(text = "${HOMEWORLD}${characterDetails.homeworld}", style = typography.bodyMedium)
                 }
             }
         }
@@ -230,19 +252,19 @@ fun StarshipDetailsScreen(starshipId: String) {
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "Name: ${starshipDetails.name}",
+                        text = "${NAME_STARSHIP}${starshipDetails.name}",
                         style = typography.bodyLarge,
                         color = MaterialTheme.colorScheme.primary
                     )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-                    Text(text = "Model: ${starshipDetails.model}", style = typography.bodyMedium)
-                    Text(text = "Starship Class: ${starshipDetails.starshipClass}", style = typography.bodyMedium)
-                    Text(text = "Manufacturers: ${starshipDetails.manufacturers.joinToString()}", style = typography.bodyMedium)
-                    Text(text = "Length: ${starshipDetails.length}", style = typography.bodyMedium)
-                    Text(text = "Crew: ${starshipDetails.crew}", style = typography.bodyMedium)
-                    Text(text = "Passengers: ${starshipDetails.passengers}", style = typography.bodyMedium)
-                    Text(text = "Max Atmosphering Speed: ${starshipDetails.maxAtmospheringSpeed}", style = typography.bodyMedium)
-                    Text(text = "Hyperdrive Rating: ${starshipDetails.hyperdriveRating}", style = typography.bodyMedium)
+                    Text(text = "${MODEL}${starshipDetails.model}", style = typography.bodyMedium)
+                    Text(text = "${STARSHIP_CLASS}${starshipDetails.starshipClass}", style = typography.bodyMedium)
+                    Text(text = "${MANUFACTURERS}${starshipDetails.manufacturers.joinToString()}", style = typography.bodyMedium)
+                    Text(text = "${LENGTH}${starshipDetails.length}", style = typography.bodyMedium)
+                    Text(text = "${CREW}${starshipDetails.crew}", style = typography.bodyMedium)
+                    Text(text = "${PASSENGERS}${starshipDetails.passengers}", style = typography.bodyMedium)
+                    Text(text = "${MAX_ATMOSPHERING_SPEED}${starshipDetails.maxAtmospheringSpeed}", style = typography.bodyMedium)
+                    Text(text = "${HYPERDRIVE_RATING}${starshipDetails.hyperdriveRating}", style = typography.bodyMedium)
                 }
             }
         }
@@ -270,19 +292,19 @@ fun PlanetDetailsScreen(planetId: String) {
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "Name: ${planetDetails.name}",
+                        text = "${NAME_PLANET}${planetDetails.name}",
                         style = typography.bodyLarge,
                         color = MaterialTheme.colorScheme.primary
                     )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-                    Text(text = "Climates: ${planetDetails.climates.joinToString()}", style = typography.bodyMedium)
-                    Text(text = "Diameter: ${planetDetails.diameter}", style = typography.bodyMedium)
-                    Text(text = "Rotation Period: ${planetDetails.rotationPeriod}", style = typography.bodyMedium)
-                    Text(text = "Orbital Period: ${planetDetails.orbitalPeriod}", style = typography.bodyMedium)
-                    Text(text = "Gravity: ${planetDetails.gravity}", style = typography.bodyMedium)
-                    Text(text = "Population: ${planetDetails.population}", style = typography.bodyMedium)
-                    Text(text = "Terrains: ${planetDetails.terrains.joinToString()}", style = typography.bodyMedium)
-                    Text(text = "Surface Water: ${planetDetails.surfaceWater}", style = typography.bodyMedium)
+                    Text(text = "${CLIMATES}${planetDetails.climates.joinToString()}", style = typography.bodyMedium)
+                    Text(text = "${DIAMETER}${planetDetails.diameter}", style = typography.bodyMedium)
+                    Text(text = "${ROTATION_PERIOD}${planetDetails.rotationPeriod}", style = typography.bodyMedium)
+                    Text(text = "${ORBITAL_PERIOD}${planetDetails.orbitalPeriod}", style = typography.bodyMedium)
+                    Text(text = "${GRAVITY}${planetDetails.gravity}", style = typography.bodyMedium)
+                    Text(text = "${POPULATION}${planetDetails.population}", style = typography.bodyMedium)
+                    Text(text = "${TERRAINS}${planetDetails.terrains.joinToString()}", style = typography.bodyMedium)
+                    Text(text = "${SURFACE_WATER}${planetDetails.surfaceWater}", style = typography.bodyMedium)
                 }
             }
         }
@@ -305,13 +327,13 @@ fun CharacterItem(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column {
-            Text(text = "Name: ${character.name}", style = typography.bodyMedium)
-            Text(text = "Films Count: ${character.filmsCount}", style = typography.bodyLarge)
+            Text(text = "$NAME_CHARACTER${character.name}", style = typography.bodyMedium)
+            Text(text = "$FILMS_COUNT${character.filmsCount}", style = typography.bodyLarge)
         }
         IconButton(onClick = onFavoriteClick) {
             Icon(
                 imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.Star,
-                contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites"
+                contentDescription = if (isFavorite) REMOVE_FROM_FAVORITES else ADD_TO_FAVORITES
             )
         }
     }
@@ -320,14 +342,14 @@ fun CharacterItem(
 @Composable
 fun StarshipItem(starship: Starship, onClick: () -> Unit) {
     Column(modifier = Modifier.padding(12.dp).clickable(onClick = onClick)) {
-        Text(text = "Starship: ${starship.name}", style = typography.bodyMedium)
+        Text(text = "$STARSHIP${starship.name}", style = typography.bodyMedium)
     }
 }
 
 @Composable
 fun PlanetItem(planet: Planet, onClick: () -> Unit) {
     Column(modifier = Modifier.padding(12.dp).clickable(onClick = onClick)) {
-        Text(text = "Planet: ${planet.name}", style = typography.bodyMedium)
+        Text(text = "$PLANET${planet.name}", style = typography.bodyMedium)
     }
 }
 
@@ -339,17 +361,16 @@ fun LoadingIndicator(
 ) {
     val rainbowColors = listOf(Color.Red, Color.Yellow, Color.Green, Color.Blue, Color.Cyan, Color.Magenta)
     val infiniteTransition = rememberInfiniteTransition(label = "")
-    val tweenAnimationDuration = 500
     val color by infiniteTransition.animateColor(
         initialValue = rainbowColors.first(),
         targetValue = rainbowColors.last(),
-        animationSpec = infiniteRepeatable(tween(tweenAnimationDuration), repeatMode = RepeatMode.Reverse), label = ""
+        animationSpec = infiniteRepeatable(tween(TWEEN_ANIMATION_DURATION), repeatMode = RepeatMode.Reverse), label = ""
     )
 
     AnimatedVisibility(
         visible = true,
-        enter = fadeIn(animationSpec = tween(tweenAnimationDuration)),
-        exit = fadeOut(animationSpec = tween(tweenAnimationDuration))
+        enter = fadeIn(animationSpec = tween(TWEEN_ANIMATION_DURATION)),
+        exit = fadeOut(animationSpec = tween(TWEEN_ANIMATION_DURATION))
     ) {
         Box(
             modifier = modifier
@@ -370,4 +391,47 @@ fun LoadingIndicator(
             )
         }
     }
+}
+
+const val TWEEN_ANIMATION_DURATION = 500
+
+object CharacterDetailsScreenConstants {
+    const val NAME_CHARACTER = "Name: "
+    const val BIRTH_YEAR = "Birth Year: "
+    const val EYE_COLOR = "Eye Color: "
+    const val GENDER = "Gender: "
+    const val HAIR_COLOR = "Hair Color: "
+    const val HEIGHT = "Height: "
+    const val MASS = "Mass: "
+    const val SKIN_COLOR = "Skin Color: "
+    const val HOMEWORLD = "Homeworld: "
+    const val FILMS_COUNT = "Films Count: "
+    const val REMOVE_FROM_FAVORITES = "Remove from favorites"
+    const val ADD_TO_FAVORITES = "Add to favorites"
+}
+
+object StarshipDetailsScreenConstants {
+    const val NAME_STARSHIP = "Name: "
+    const val MODEL = "Model: "
+    const val STARSHIP_CLASS = "Starship Class: "
+    const val MANUFACTURERS = "Manufacturers: "
+    const val LENGTH = "Length: "
+    const val CREW = "Crew: "
+    const val PASSENGERS = "Passengers: "
+    const val MAX_ATMOSPHERING_SPEED = "Max Atmosphering Speed: "
+    const val HYPERDRIVE_RATING = "Hyperdrive Rating: "
+    const val STARSHIP = "Starship: "
+}
+
+object PlanetDetailsScreenConstants {
+    const val NAME_PLANET = "Name: "
+    const val CLIMATES = "Climates: "
+    const val DIAMETER = "Diameter: "
+    const val ROTATION_PERIOD = "Rotation Period: "
+    const val ORBITAL_PERIOD = "Orbital Period: "
+    const val GRAVITY = "Gravity: "
+    const val POPULATION = "Population: "
+    const val TERRAINS = "Terrains: "
+    const val SURFACE_WATER = "Surface Water: "
+    const val PLANET = "Planet: "
 }

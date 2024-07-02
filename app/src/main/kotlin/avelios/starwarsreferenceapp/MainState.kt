@@ -69,18 +69,6 @@ internal class MainActor(
         }
     }
 
-    suspend fun fetchCharactersFromLocal(): List<StarWarsCharacter> {
-        return repository.getAllCharacters()
-    }
-
-    suspend fun fetchStarshipsFromLocal(): List<Starship> {
-        return repository.getAllStarships()
-    }
-
-    suspend fun fetchPlanetsFromLocal(): List<Planet> {
-        return repository.getAllPlanets()
-    }
-
     suspend fun updateCharactersInDatabase(characters: List<StarWarsCharacter>) {
         repository.updateCharacters(characters)
     }
