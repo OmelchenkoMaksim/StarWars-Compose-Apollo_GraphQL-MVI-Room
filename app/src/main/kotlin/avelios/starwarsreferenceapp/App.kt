@@ -18,6 +18,7 @@ import avelios.starwarsreferenceapp.mvi.MainActorImpl
 import avelios.starwarsreferenceapp.util.NetworkManager
 import avelios.starwarsreferenceapp.util.NetworkManagerImpl
 import avelios.starwarsreferenceapp.util.SettingsManager
+import avelios.starwarsreferenceapp.util.SettingsManagerImpl
 import avelios.starwarsreferenceapp.viewmodel.MainViewModel
 import com.apollographql.apollo3.ApolloClient
 import com.apollographql.apollo3.network.okHttpClient
@@ -35,6 +36,10 @@ import org.koin.core.context.startKoin
 import org.koin.dsl.module
 import timber.log.Timber
 
+/**
+ * Main application class where the Koin dependency injection framework is initialized
+ * and network connectivity listener is set up.
+ */
 internal class App : Application() {
     private lateinit var networkCallback: ConnectivityManager.NetworkCallback
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -64,7 +69,7 @@ internal class App : Application() {
             getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         }
         single { provideSharedPreferences(androidContext()) }
-        single { SettingsManager(get()) }
+        single<SettingsManager> { SettingsManagerImpl(get()) }
 
         single { appScope }
 
@@ -83,6 +88,9 @@ internal class App : Application() {
         viewModel { MainViewModel(get(), get()) }
     }
 
+    /**
+     * Here we initialize Koin and set up the network listener.
+     */
     override fun onCreate() {
         super.onCreate()
         startKoin {
@@ -126,6 +134,9 @@ internal class App : Application() {
     }
 }
 
+/**
+ * Object for displaying toast messages globally within the app.
+ */
 internal object GlobalToast {
     private var toast: Toast? = null
 
@@ -135,4 +146,3 @@ internal object GlobalToast {
         toast?.show()
     }
 }
-

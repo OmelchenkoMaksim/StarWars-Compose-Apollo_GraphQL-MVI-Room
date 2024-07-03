@@ -125,7 +125,9 @@ internal class MainActorImpl(
                     networkManager.isNetworkAvailable.value,
                     themeVariant = settingsManager.loadThemeVariant(),
                     typographyVariant = settingsManager.loadTypographyVariant(),
-                    isDarkTheme = settingsManager.isDarkMode()
+                    isDarkTheme = settingsManager.isDarkMode(),
+                    favoriteCharacters = emptyMap(),
+                    showOnlyFavorites = false
                 )
             }
         } catch (e: Exception) {

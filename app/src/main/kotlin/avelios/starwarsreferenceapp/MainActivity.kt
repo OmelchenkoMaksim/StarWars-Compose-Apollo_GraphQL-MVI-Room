@@ -12,6 +12,10 @@ import avelios.starwarsreferenceapp.ui.theme.StarWarsReferenceAppTheme
 import avelios.starwarsreferenceapp.viewmodel.MainViewModel
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
+/**
+ * The main entry point of the Star Wars Reference app.
+ * This activity sets up the main UI and initializes the ViewModel.
+ */
 class MainActivity : ComponentActivity() {
     private val mainViewModel: MainViewModel by viewModel()
 

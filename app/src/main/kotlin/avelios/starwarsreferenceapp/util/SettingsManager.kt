@@ -1,40 +1,54 @@
 package avelios.starwarsreferenceapp.util
 
-import android.content.SharedPreferences
 import avelios.starwarsreferenceapp.ui.theme.ThemeVariant
 import avelios.starwarsreferenceapp.ui.theme.TypographyVariant
 
-internal class SettingsManager(private val sharedPreferences: SharedPreferences) {
+/**
+ * Interface for managing app settings such as theme and typography variants and dark mode.
+ */
+internal interface SettingsManager {
 
-    fun saveThemeVariant(themeVariant: ThemeVariant) {
-        sharedPreferences.edit().putString(THEME_VARIANT, themeVariant.name).apply()
-    }
+    /**
+     * Saves the current theme variant to the shared preferences.
+     *
+     * @param themeVariant The theme variant to be saved.
+     */
+    fun saveThemeVariant(themeVariant: ThemeVariant)
 
-    fun loadThemeVariant(): ThemeVariant {
-        val themeVariantName = sharedPreferences.getString(THEME_VARIANT, ThemeVariant.MorningMystic.name)
-        return ThemeVariant.valueOf(themeVariantName ?: ThemeVariant.MorningMystic.name)
-    }
+    /**
+     * Loads the saved theme variant from the shared preferences.
+     *
+     * @return The saved theme variant, or the default value if none is saved.
+     */
+    fun loadThemeVariant(): ThemeVariant
 
-    fun saveTypographyVariant(typographyVariant: TypographyVariant) {
-        sharedPreferences.edit().putString(TYPOGRAPHY_VARIANT, typographyVariant.name).apply()
-    }
+    /**
+     * Saves the current typography variant to the shared preferences.
+     *
+     * @param typographyVariant The typography variant to be saved.
+     */
+    fun saveTypographyVariant(typographyVariant: TypographyVariant)
 
-    fun loadTypographyVariant(): TypographyVariant {
-        val typographyVariantName = sharedPreferences.getString(TYPOGRAPHY_VARIANT, TypographyVariant.Classic.name)
-        return TypographyVariant.valueOf(typographyVariantName ?: TypographyVariant.Classic.name)
-    }
+    /**
+     * Loads the saved typography variant from the shared preferences.
+     *
+     * @return The saved typography variant, or the default value if none is saved.
+     */
+    fun loadTypographyVariant(): TypographyVariant
 
-    fun setDarkMode(isDarkMode: Boolean) {
-        sharedPreferences.edit().putBoolean(IS_DARK_MODE, isDarkMode).apply()
-    }
+    /**
+     * Sets the dark mode preference in the shared preferences.
+     *
+     * @param isDarkMode A boolean indicating whether dark mode should be enabled.
+     */
+    fun setDarkMode(isDarkMode: Boolean)
 
-    fun isDarkMode(): Boolean {
-        return sharedPreferences.getBoolean(IS_DARK_MODE, false)
-    }
-
-    internal companion object PreferencesConstants {
-        const val THEME_VARIANT = "theme_variant"
-        const val TYPOGRAPHY_VARIANT = "typography_variant"
-        const val IS_DARK_MODE = "isDarkMode"
-    }
+    /**
+     * Checks if dark mode is enabled by reading the shared preferences.
+     *
+     * @return A boolean indicating whether dark mode is enabled.
+     */
+    fun isDarkMode(): Boolean
 }
+
+

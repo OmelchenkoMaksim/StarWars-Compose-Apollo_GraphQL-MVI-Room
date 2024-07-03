@@ -10,6 +10,14 @@ import avelios.starwarsreferenceapp.util.NetworkManager
 import kotlinx.coroutines.flow.StateFlow
 import timber.log.Timber
 
+/**
+ * A PagingSource implementation for loading Star Wars characters, supporting both online and offline modes.
+ *
+ * @property actor The MainActor responsible for handling actions and fetching data.
+ * @property favoriteCharactersFlow A StateFlow containing the map of favorite characters.
+ * @property repository The StarWarsRepository for accessing local data.
+ * @property networkManager The NetworkManager for checking network availability.
+ */
 internal class CharacterPagingSource(
     private val actor: MainActor,
     private val favoriteCharactersFlow: StateFlow<Map<String, Boolean>>,
@@ -56,6 +64,13 @@ internal class CharacterPagingSource(
     }
 }
 
+/**
+ * A PagingSource implementation for loading Star Wars starships, supporting both online and offline modes.
+ *
+ * @property actor The MainActor responsible for handling actions and fetching data.
+ * @property repository The StarWarsRepository for accessing local data.
+ * @property networkManager The NetworkManager for checking network availability.
+ */
 internal class StarshipPagingSource(
     private val actor: MainActor,
     private val repository: StarWarsRepository,
@@ -95,6 +110,13 @@ internal class StarshipPagingSource(
     }
 }
 
+/**
+ * A PagingSource implementation for loading Star Wars planets, supporting both online and offline modes.
+ *
+ * @property actor The MainActor responsible for handling actions and fetching data.
+ * @property repository The StarWarsRepository for accessing local data.
+ * @property networkManager The NetworkManager for checking network availability.
+ */
 internal class PlanetPagingSource(
     private val actor: MainActor,
     private val repository: StarWarsRepository,

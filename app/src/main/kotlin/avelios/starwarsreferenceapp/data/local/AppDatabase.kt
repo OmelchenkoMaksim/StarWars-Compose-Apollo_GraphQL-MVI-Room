@@ -10,6 +10,14 @@ import avelios.starwarsreferenceapp.data.local.entity.Planet
 import avelios.starwarsreferenceapp.data.local.entity.StarWarsCharacter
 import avelios.starwarsreferenceapp.data.local.entity.Starship
 
+/**
+ * Represents the main database for the application, incorporating tables for Star Wars characters, starships, and planets.
+ * Uses Room Database with converters for custom data types.
+ *
+ * @property characterDao Provides access to operations on the characters table.
+ * @property starshipDao Provides access to operations on the starships table.
+ * @property planetDao Provides access to operations on the planets table.
+ */
 @Database(entities = [StarWarsCharacter::class, Starship::class, Planet::class], version = 1, exportSchema = false)
 @TypeConverters(Converters::class)
 internal abstract class AppDatabase : RoomDatabase() {

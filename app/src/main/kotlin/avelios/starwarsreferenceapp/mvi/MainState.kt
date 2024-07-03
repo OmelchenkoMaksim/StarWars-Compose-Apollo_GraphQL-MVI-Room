@@ -6,23 +6,27 @@ import avelios.starwarsreferenceapp.data.local.entity.Starship
 import avelios.starwarsreferenceapp.ui.theme.ThemeVariant
 import avelios.starwarsreferenceapp.ui.theme.TypographyVariant
 
+/**
+ * Sealed class representing the various states that the app can be in.
+ */
 internal sealed class MainState {
-    data object Loading : MainState()
+    data class ShowToast(val message: String) : MainState()
+    data class Error(val message: String) : MainState()
     data class DataLoaded(
-        val characters: List<StarWarsCharacter> = emptyList(),
-        val starships: List<Starship> = emptyList(),
-        val planets: List<Planet> = emptyList(),
-        val isNetworkAvailable: Boolean = false,
-        val favoriteCharacters: Map<String, Boolean> = emptyMap(),
-        val themeVariant: ThemeVariant = ThemeVariant.MorningMystic,
-        val typographyVariant: TypographyVariant = TypographyVariant.Classic,
-        val isDarkTheme: Boolean = false,
-        val showOnlyFavorites: Boolean = false
+        val characters: List<StarWarsCharacter>,
+        val starships: List<Starship>,
+        val planets: List<Planet>,
+        val isNetworkAvailable: Boolean,
+        val favoriteCharacters: Map<String, Boolean>,
+        val themeVariant: ThemeVariant,
+        val typographyVariant: TypographyVariant,
+        val isDarkTheme: Boolean,
+        val showOnlyFavorites: Boolean
     ) : MainState()
 
+
+    data object Loading : MainState()
     data object EmptyData : MainState()
-    data class ShowToast(val message: String) : MainState()
     data object ThemeChanged : MainState()
     data object NoInternetAndEmptyData : MainState()
-    data class Error(val message: String) : MainState()
 }
