@@ -1,10 +1,9 @@
-package avelios.starwarsreferenceapp.navigation
+package avelios.starwarsreferenceapp.ui.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,8 +22,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -45,53 +42,46 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavHostController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.paging.compose.collectAsLazyPagingItems
 import avelios.starwarsreferenceapp.GlobalToast
 import avelios.starwarsreferenceapp.R
 import avelios.starwarsreferenceapp.mvi.MainAction
 import avelios.starwarsreferenceapp.mvi.MainState
-import avelios.starwarsreferenceapp.navigation.MainScreenConstants.EMPTY_DATA_WITHOUT_INTERNET_MESSAGE
-import avelios.starwarsreferenceapp.navigation.MainScreenConstants.NO_INTERNET_AND_EMPTY_DATA_MESSAGE
-import avelios.starwarsreferenceapp.navigation.MainScreenConstants.OFFLINE_MODE_MESSAGE
+import avelios.starwarsreferenceapp.navigation.BottomNavigationBar
 import avelios.starwarsreferenceapp.navigation.NavigationConstants.APP_TITLE
 import avelios.starwarsreferenceapp.navigation.NavigationConstants.BACK
 import avelios.starwarsreferenceapp.navigation.NavigationConstants.CHARACTER_DETAILS_ROUTE
-import avelios.starwarsreferenceapp.navigation.NavigationConstants.CHARACTER_DETAILS_SLASH
-import avelios.starwarsreferenceapp.navigation.NavigationConstants.CHARACTER_ID_KEY
 import avelios.starwarsreferenceapp.navigation.NavigationConstants.CHARACTER_TITLE
 import avelios.starwarsreferenceapp.navigation.NavigationConstants.OK
 import avelios.starwarsreferenceapp.navigation.NavigationConstants.PLANET_DETAILS_ROUTE
-import avelios.starwarsreferenceapp.navigation.NavigationConstants.PLANET_DETAILS_SLASH
-import avelios.starwarsreferenceapp.navigation.NavigationConstants.PLANET_ID_KEY
 import avelios.starwarsreferenceapp.navigation.NavigationConstants.PLANET_TITLE
 import avelios.starwarsreferenceapp.navigation.NavigationConstants.SELECT_THEME
 import avelios.starwarsreferenceapp.navigation.NavigationConstants.SELECT_TYPOGRAPHY
 import avelios.starwarsreferenceapp.navigation.NavigationConstants.SETTINGS
 import avelios.starwarsreferenceapp.navigation.NavigationConstants.STARSHIP_DETAILS_ROUTE
-import avelios.starwarsreferenceapp.navigation.NavigationConstants.STARSHIP_DETAILS_SLASH
-import avelios.starwarsreferenceapp.navigation.NavigationConstants.STARSHIP_ID_KEY
 import avelios.starwarsreferenceapp.navigation.NavigationConstants.STARSHIP_TITLE
 import avelios.starwarsreferenceapp.navigation.NavigationConstants.THEME_MODE_CHANGED
 import avelios.starwarsreferenceapp.navigation.NavigationConstants.TOGGLE_FAVORITES
 import avelios.starwarsreferenceapp.navigation.NavigationConstants.TOGGLE_THEME
+import avelios.starwarsreferenceapp.navigation.NavigationHost
+import avelios.starwarsreferenceapp.navigation.NavigationItem
 import avelios.starwarsreferenceapp.ui.component.LoadingIndicator
-import avelios.starwarsreferenceapp.ui.screen.CharacterDetailsScreen
-import avelios.starwarsreferenceapp.ui.screen.CharactersScreen
-import avelios.starwarsreferenceapp.ui.screen.PlanetDetailsScreen
-import avelios.starwarsreferenceapp.ui.screen.PlanetsScreen
-import avelios.starwarsreferenceapp.ui.screen.StarshipDetailsScreen
-import avelios.starwarsreferenceapp.ui.screen.StarshipsScreen
+import avelios.starwarsreferenceapp.ui.screens.MainScreenConstants.EMPTY_DATA_WITHOUT_INTERNET_MESSAGE
+import avelios.starwarsreferenceapp.ui.screens.MainScreenConstants.NO_INTERNET_AND_EMPTY_DATA_MESSAGE
+import avelios.starwarsreferenceapp.ui.screens.MainScreenConstants.OFFLINE_MODE_MESSAGE
 import avelios.starwarsreferenceapp.ui.theme.StarWarsReferenceAppTheme
 import avelios.starwarsreferenceapp.ui.theme.ThemeVariant
 import avelios.starwarsreferenceapp.ui.theme.TypographyVariant
 import avelios.starwarsreferenceapp.viewmodel.MainViewModel
 import timber.log.Timber
 
+/**
+ * MainScreen composable function that handles different states of the application
+ * and applies the corresponding UI.
+ *
+ * @param viewModel The ViewModel associated with the MainScreen.
+ */
 @Composable
 internal fun MainScreen(viewModel: MainViewModel) {
     val state by viewModel.state.collectAsState()
@@ -147,16 +137,18 @@ internal fun MainScreen(viewModel: MainViewModel) {
             }
         }
 
-        is MainState.ShowToast -> {
-            GlobalToast.show(LocalContext.current, (state as MainState.ShowToast).message)
-        }
-
-        MainState.ThemeChanged -> {
-            GlobalToast.show(LocalContext.current, "Theme mode changed")
-        }
+        is MainState.ShowToast -> GlobalToast.show(LocalContext.current, (state as MainState.ShowToast).message)
+        MainState.ThemeChanged -> GlobalToast.show(LocalContext.current, THEME_MODE_CHANGED)
     }
 }
 
+/**
+ * DataScreen composable function that sets up the main UI components,
+ * including the top app bar, bottom navigation bar, and handles navigation.
+ *
+ * @param viewModel The ViewModel associated with the DataScreen.
+ * @param showSettingsDialog MutableState to show or hide the settings dialog.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun DataScreen(viewModel: MainViewModel, showSettingsDialog: MutableState<Boolean>) {
@@ -203,7 +195,6 @@ internal fun DataScreen(viewModel: MainViewModel, showSettingsDialog: MutableSta
                     }
                     val context = LocalContext.current
                     IconButton(onClick = {
-
                         GlobalToast.show(context, THEME_MODE_CHANGED)
                         viewModel.handleIntent(MainAction.ToggleTheme)
                     }) {
@@ -245,82 +236,16 @@ internal fun DataScreen(viewModel: MainViewModel, showSettingsDialog: MutableSta
     }
 }
 
-@Composable
-internal fun NavigationHost(
-    navController: NavHostController,
-    paddingValues: PaddingValues,
-    viewModel: MainViewModel
-) {
-    val state by viewModel.state.collectAsState()
-    val favoriteCharacters by viewModel.favoriteCharacters.collectAsState()
-    val characters = viewModel.charactersPager.collectAsState().value.collectAsLazyPagingItems()
-    val starships = viewModel.starshipsPager.collectAsState().value.collectAsLazyPagingItems()
-    val planets = viewModel.planetsPager.collectAsState().value.collectAsLazyPagingItems()
 
-    NavHost(
-        navController, startDestination = NavigationItem.Characters.route,
-        modifier = Modifier.padding(paddingValues)
-    ) {
-        composable(NavigationItem.Characters.route) {
-            CharactersScreen(
-                characters = characters,
-                favoriteCharacters = favoriteCharacters,
-                onCharacterClick = { characterId ->
-                    navController.navigate("$CHARACTER_DETAILS_SLASH$characterId")
-                },
-                onFavoriteClick = { id, isFavorite ->
-                    viewModel.handleIntent(MainAction.UpdateFavoriteStatus(id, isFavorite))
-                },
-                showOnlyFavorites = (state as? MainState.DataLoaded)?.showOnlyFavorites ?: false,
-            )
-        }
-        composable(NavigationItem.Starships.route) {
-            StarshipsScreen(
-                starships = starships,
-                onStarshipClick = { starshipId ->
-                    navController.navigate("$STARSHIP_DETAILS_SLASH$starshipId")
-                }
-            )
-        }
-        composable(NavigationItem.Planets.route) {
-            PlanetsScreen(
-                planets = planets,
-                onPlanetClick = { planetId ->
-                    navController.navigate("$PLANET_DETAILS_SLASH$planetId")
-                }
-            )
-        }
-        composable(CHARACTER_DETAILS_ROUTE) { backStackEntry ->
-            val characterId = backStackEntry.arguments?.getString(CHARACTER_ID_KEY) ?: return@composable
-            CharacterDetailsScreen(
-                characterId = characterId,
-                character = viewModel.selectedCharacter.collectAsState().value,
-                isLoading = viewModel.isLoading.collectAsState().value,
-                isNetworkAvailable = viewModel.isNetworkAvailable.collectAsState().value,
-                onFetchCharacterDetails = { viewModel.handleIntent(MainAction.FetchCharacterDetails(characterId)) }
-            )
-        }
-        composable(STARSHIP_DETAILS_ROUTE) { backStackEntry ->
-            val starshipId = backStackEntry.arguments?.getString(STARSHIP_ID_KEY) ?: return@composable
-            StarshipDetailsScreen(
-                starshipId = starshipId,
-                starship = viewModel.selectedStarship.collectAsState().value,
-                isLoading = viewModel.isLoading.collectAsState().value,
-                isNetworkAvailable = viewModel.isNetworkAvailable.collectAsState().value
-            ) { viewModel.handleIntent(MainAction.FetchStarshipDetails(starshipId)) }
-        }
-        composable(PLANET_DETAILS_ROUTE) { backStackEntry ->
-            val planetId = backStackEntry.arguments?.getString(PLANET_ID_KEY) ?: return@composable
-            PlanetDetailsScreen(
-                planetId = planetId,
-                planet = viewModel.selectedPlanet.collectAsState().value,
-                isLoading = viewModel.isLoading.collectAsState().value,
-                isNetworkAvailable = viewModel.isNetworkAvailable.collectAsState().value
-            ) { viewModel.handleIntent(MainAction.FetchPlanetDetails(planetId)) }
-        }
-    }
-}
-
+/**
+ * SettingsDialog composable function that displays a settings dialog
+ * for selecting theme and typography variants.
+ *
+ * @param onDismiss Callback to dismiss the dialog.
+ * @param themeVariant MutableState to hold the current theme variant.
+ * @param typographyVariant MutableState to hold the current typography variant.
+ * @param onSaveSettings Callback to save the selected settings.
+ */
 @Composable
 internal fun SettingsDialog(
     onDismiss: () -> Unit,
@@ -417,68 +342,7 @@ fun OutlinedText(text: String) {
     )
 }
 
-@Composable
-fun BottomNavigationBar(navController: NavHostController) {
-    val items = listOf(
-        NavigationItem.Characters,
-        NavigationItem.Starships,
-        NavigationItem.Planets
-    )
-    NavigationBar {
-        val currentRoute = currentRoute(navController)
-        items.forEach { item ->
-            NavigationBarItem(
-                icon = { Icon(item.icon, contentDescription = item.title) },
-                label = { Text(item.title) },
-                selected = currentRoute == item.route,
-                onClick = {
-                    navController.popBackStack(navController.graph.startDestinationId, false)
-                    navController.navigate(item.route) {
-                        popUpTo(navController.graph.startDestinationId) { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                }
-            )
-        }
-    }
-}
-
-@Composable
-fun currentRoute(navController: NavHostController): String? {
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    return navBackStackEntry?.destination?.route
-}
-
-object NavigationConstants {
-    const val CHARACTER_DETAILS_ROUTE = "character_details/{characterId}"
-    const val STARSHIP_DETAILS_ROUTE = "starship_details/{starshipId}"
-    const val PLANET_DETAILS_ROUTE = "planet_details/{planetId}"
-
-    const val CHARACTER_DETAILS_SLASH = "character_details/"
-    const val STARSHIP_DETAILS_SLASH = "starship_details/"
-    const val PLANET_DETAILS_SLASH = "planet_details/"
-
-    const val APP_TITLE = "Star Wars APP"
-    const val CHARACTER_TITLE = "Character"
-    const val STARSHIP_TITLE = "Starship"
-    const val PLANET_TITLE = "Planet"
-
-    const val THEME_MODE_CHANGED = "Theme Mode Changed!"
-    const val BACK = "Back"
-    const val TOGGLE_FAVORITES = "Toggle Favorites"
-    const val TOGGLE_THEME = "Toggle Theme"
-    const val SETTINGS = "Settings"
-    const val SELECT_THEME = "Select Theme"
-    const val SELECT_TYPOGRAPHY = "Select Typography"
-    const val OK = "OK"
-
-    const val CHARACTER_ID_KEY = "characterId"
-    const val STARSHIP_ID_KEY = "starshipId"
-    const val PLANET_ID_KEY = "planetId"
-}
-
-object MainScreenConstants {
+internal object MainScreenConstants {
     const val EMPTY_DATA_WITHOUT_INTERNET_MESSAGE = "No internet connection. The lists are empty."
     const val NO_INTERNET_AND_EMPTY_DATA_MESSAGE = "No internet connection and the local database is empty."
     const val OFFLINE_MODE_MESSAGE = "Offline mode: Please check your internet connection"

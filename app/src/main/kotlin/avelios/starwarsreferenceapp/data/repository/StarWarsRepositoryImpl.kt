@@ -16,6 +16,7 @@ import avelios.starwarsreferenceapp.domain.model.CharactersResponse
 import avelios.starwarsreferenceapp.domain.model.PageInfo
 import avelios.starwarsreferenceapp.domain.model.PlanetsResponse
 import avelios.starwarsreferenceapp.domain.model.StarshipsResponse
+import avelios.starwarsreferenceapp.mvi.MainActorImpl.Companion.PAGE_SIZE
 import com.apollographql.apollo3.ApolloClient
 import com.apollographql.apollo3.api.ApolloResponse
 import com.apollographql.apollo3.api.Optional
@@ -247,9 +248,9 @@ class StarWarsRepositoryImpl(
 
     override suspend fun refreshData() {
         try {
-            val charactersResponse: CharactersResponse = fetchCharacters()
-            val starshipsResponse: StarshipsResponse = fetchStarships()
-            val planetsResponse: PlanetsResponse = fetchPlanets()
+            val charactersResponse: CharactersResponse = fetchCharacters(null, PAGE_SIZE)
+            val starshipsResponse: StarshipsResponse = fetchStarships(null, PAGE_SIZE)
+            val planetsResponse: PlanetsResponse = fetchPlanets(null, PAGE_SIZE)
 
             characterDao.insertCharacters(*charactersResponse.characters.toTypedArray())
             starshipDao.insertStarships(*starshipsResponse.starships.toTypedArray())

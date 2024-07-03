@@ -38,10 +38,10 @@ import androidx.compose.ui.unit.dp
 import avelios.starwarsreferenceapp.data.local.entity.Planet
 import avelios.starwarsreferenceapp.data.local.entity.StarWarsCharacter
 import avelios.starwarsreferenceapp.data.local.entity.Starship
-import avelios.starwarsreferenceapp.ui.screen.CharacterDetailsScreenConstants
-import avelios.starwarsreferenceapp.ui.screen.PlanetDetailsScreenConstants
-import avelios.starwarsreferenceapp.ui.screen.StarshipDetailsScreenConstants
-import avelios.starwarsreferenceapp.ui.screen.TWEEN_ANIMATION_DURATION
+import avelios.starwarsreferenceapp.ui.screens.CharacterDetailsScreenConstants
+import avelios.starwarsreferenceapp.ui.screens.PlanetDetailsScreenConstants
+import avelios.starwarsreferenceapp.ui.screens.StarshipDetailsScreenConstants
+import avelios.starwarsreferenceapp.ui.screens.TWEEN_ANIMATION_DURATION
 
 
 @Composable

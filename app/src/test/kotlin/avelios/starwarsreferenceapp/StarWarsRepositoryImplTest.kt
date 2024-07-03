@@ -6,6 +6,7 @@ import avelios.starwarsreferenceapp.data.local.dao.StarshipDao
 import avelios.starwarsreferenceapp.data.local.entity.Planet
 import avelios.starwarsreferenceapp.data.local.entity.StarWarsCharacter
 import avelios.starwarsreferenceapp.data.local.entity.Starship
+import avelios.starwarsreferenceapp.data.repository.StarWarsRepository
 import avelios.starwarsreferenceapp.data.repository.StarWarsRepositoryImpl
 import com.apollographql.apollo3.ApolloClient
 import io.mockk.coEvery
@@ -19,14 +20,14 @@ import org.junit.Before
 import org.junit.Test
 
 @ExperimentalCoroutinesApi
-class StarWarsRepositoryImplTest {
+class StarWarsRepositoryTest {
 
     private lateinit var apolloClient: ApolloClient
     private lateinit var characterDao: CharacterDao
     private lateinit var starshipDao: StarshipDao
     private lateinit var planetDao: PlanetDao
 
-    private lateinit var repository: StarWarsRepositoryImpl
+    private lateinit var repository: StarWarsRepository
 
     private val testDispatcher = StandardTestDispatcher()
 

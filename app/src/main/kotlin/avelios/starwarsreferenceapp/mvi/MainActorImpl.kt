@@ -295,6 +295,6 @@ internal class MainActorImpl(
     }
 
     internal companion object {
-        private const val PAGE_SIZE = 10
+        internal const val PAGE_SIZE = 10
     }
 }

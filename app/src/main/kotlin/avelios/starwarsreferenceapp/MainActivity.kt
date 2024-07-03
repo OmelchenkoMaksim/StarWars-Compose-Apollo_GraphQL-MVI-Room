@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
-import avelios.starwarsreferenceapp.navigation.MainScreen
+import avelios.starwarsreferenceapp.ui.screens.MainScreen
 import avelios.starwarsreferenceapp.ui.theme.StarWarsReferenceAppTheme
 import avelios.starwarsreferenceapp.viewmodel.MainViewModel
 import org.koin.androidx.viewmodel.ext.android.viewModel

@@ -30,6 +30,14 @@ import avelios.starwarsreferenceapp.ui.theme.TypographyVariant.Modern
 import avelios.starwarsreferenceapp.ui.theme.TypographyVariant.Playful
 import avelios.starwarsreferenceapp.ui.theme.TypographyVariant.Professional
 
+/**
+ * Applies the selected theme and typography settings to the content of the app.
+ *
+ * @param darkTheme A flag indicating whether the dark theme is enabled. Default is system dark theme setting.
+ * @param themeVariant The selected theme variant. Default is MorningMystic.
+ * @param typographyVariant The selected typography variant. Default is Classic.
+ * @param content The composable content to apply the theme and typography settings to.
+ */
 @Composable
 internal fun StarWarsReferenceAppTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -62,6 +70,9 @@ internal fun StarWarsReferenceAppTheme(
     )
 }
 
+/**
+ * Enum class representing the different theme variants available in the app.
+ */
 internal enum class ThemeVariant {
     MorningMystic, SpringForest, MintOcean, SunMoonlight, AutumnSunset, LavenderMidnight
 }

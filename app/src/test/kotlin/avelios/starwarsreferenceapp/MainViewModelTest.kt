@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.TestCoroutineDispatcher
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -26,7 +26,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TestRule
 import org.mockito.Mock
-import org.mockito.MockitoAnnotations
+import org.mockito.MockitoAnnotations.openMocks
 
 @ExperimentalCoroutinesApi
 class MainViewModelTest {
@@ -34,7 +34,7 @@ class MainViewModelTest {
     @get:Rule
     val rule: TestRule = InstantTaskExecutorRule()
 
-    private val testDispatcher = TestCoroutineDispatcher()
+    private val testDispatcher = StandardTestDispatcher()
 
     @Mock
     private lateinit var actor: MainActor
@@ -43,10 +43,11 @@ class MainViewModelTest {
     private lateinit var networkManager: NetworkManager
 
     private lateinit var viewModel: MainViewModel
+    private lateinit var closeable: AutoCloseable
 
     @Before
     fun setup() {
-        MockitoAnnotations.initMocks(this)
+        closeable = openMocks(this)
         Dispatchers.setMain(testDispatcher)
         setupMocks()
         viewModel = MainViewModel(actor, networkManager)
@@ -55,7 +56,7 @@ class MainViewModelTest {
     @After
     fun tearDown() {
         Dispatchers.resetMain()
-        testDispatcher.cleanupTestCoroutines()
+        closeable.close()
     }
 
     private fun setupMocks() {
