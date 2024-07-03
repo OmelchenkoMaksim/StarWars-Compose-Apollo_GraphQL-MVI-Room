@@ -1,30 +1,30 @@
 Star Wars Reference App
 
-This project is a test assignment for Avelios Medical, written by Maksim Omel'chenko in 2024. 
+This project is a test assignment for Avelios Medical, written by Maksim Omel'chenko in 2024.
 https://github.com/OmelchenkoMaksim
 
-It aims to create a reference application for Star Wars characters, starships, and planets.
-The app leverages modern Android development tools and
-libraries including Jetpack Compose, Apollo GraphQL, Room, Koin, and Coil.
+Overview
+
+The Star Wars Reference App is designed to provide a comprehensive reference for Star Wars characters, starships, and planets.
+The app utilizes modern Android development tools and libraries to deliver a seamless user experience,
+including Jetpack Compose, Apollo GraphQL, Room, Koin.
+
 Features
 
-    Display Characters, Starships, and Planets: Browse through a list of characters, starships, and planets from the Star Wars universe.
-    GraphQL Integration: Fetch data using GraphQL queries.
-    Offline Support: Store data locally using Room and load it when there's no internet connection.
-    Dependency Injection: Utilize Koin for dependency injection.
-    Image Loading: Load images using Coil.
+    Display Characters, Starships, and Planets: Browse through a detailed list of characters, starships, and planets from the Star Wars universe.
+    GraphQL Integration: Fetch data efficiently using GraphQL queries.
+    Offline Support: Store data locally using Room and access it even when offline.
+    Dependency Injection: Utilize Koin for efficient dependency injection.
     Paging: Efficiently load and display paginated data.
-    Theme and Typography Customization: Change themes and typography variants through settings.
+    Theme and Typography Customization: Customize themes and typography variants through the app's settings.
 
 Tech Stack
 
     Kotlin
-    Jetpack Compose: For building the UI.
+    Jetpack Compose: For building a modern and responsive UI.
     Apollo GraphQL: For querying the GraphQL API.
     Room: For local data storage.
     Koin: For dependency injection.
-    Coil: For loading images.
-    OkHttp: For networking.
     Timber: For logging.
 
 Code Structure
@@ -56,11 +56,10 @@ Dependency Injection with Koin
 
 Network Connectivity Listener
 
-The app includes a network connectivity listener to show a toast message when the internet connection is established or lost.
-It also triggers data fetch from the server when connectivity is restored and no data is available locally.
-
+The app includes a network connectivity listener to show a toast message when the internet connection is established or lost. It also triggers data
+fetch from the server when connectivity is restored and no data is available locally.
 License
 
 This project is licensed under the MIT License.
 
-Thank you for reviewing our code!
+Thank you for reviewing our code! Feel free to reach out if you have any questions or suggestions.
