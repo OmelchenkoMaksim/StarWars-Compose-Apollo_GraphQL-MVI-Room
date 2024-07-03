@@ -38,10 +38,6 @@ koinTest = "3.5.6"
 koinTestJunit4 = "3.5.6"
 archCoreTesting = "2.2.0"
 
-# Instrumented Testing libraries versions
-androidxTestExtJunit = "1.2.1"
-androidxTestEspressoCore = "3.6.1"
-
 # Android configuration strings
 namespace = "avelios.starwarsreferenceapp"
 applicationId = "avelios.starwarsreferenceapp"
